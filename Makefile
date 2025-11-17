@@ -1,0 +1,32 @@
+# Simple GNU Makefile for the project
+
+CC := gcc
+CFLAGS := -std=C99 -Wall -Wextra -O2 -g
+LDFLAGS :=
+
+SRCDIR := src
+BUILDDIR := build
+BINDIR := bin
+TARGET := htop-clone
+
+SRCS := $(wildcard $(SRCDIR)/*.c)
+OBJS := $(patsubst $(SRCDIR)/%.c,$(BUILDDIR)/%.o,$(SRCS))
+
+.PHONY: all clean run
+
+all: $(BINDIR)/$(TARGET)
+
+$(BINDIR)/$(TARGET): $(OBJS) | $(BINDIR)
+	$(CC) $(LDFLAGS) -o $@ $(OBJS)
+
+$(BUILDDIR)/%.o: $(SRCDIR)/%.c | $(BUILDDIR)
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+$(BUILDDIR) $(BINDIR):
+	mkdir -p $@
+
+clean:
+	rm -rf $(BUILDDIR) $(BINDIR)
+
+run: all
+	./$(BINDIR)/$(TARGET)
