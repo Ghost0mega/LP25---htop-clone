@@ -1,7 +1,6 @@
-# Simple GNU Makefile for the project
-
 CC := gcc
-CFLAGS := -std=C99 -Wall -Wextra -O2 -g
+CFLAGS := -std=c11 -Iinclude -Wall -Wextra -O2 -g
+# libs go here 
 LDFLAGS :=
 
 SRCDIR := src
@@ -26,6 +25,7 @@ $(BUILDDIR) $(BINDIR):
 	mkdir -p $@
 
 clean:
+# 	delete build and bin directories
 	rm -rf $(BUILDDIR) $(BINDIR)
 
 run: all
