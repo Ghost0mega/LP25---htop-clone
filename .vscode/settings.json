@@ -1,0 +1,9 @@
+{
+    "makefile.launchConfigurations": [
+        {
+            "cwd": "/home/vixen/Documents/UTBM/LP25/Projet/LP25---htop-clone/bin",
+            "binaryPath": "/home/vixen/Documents/UTBM/LP25/Projet/LP25---htop-clone/bin/htop-clone",
+            "binaryArgs": []
+        }
+    ]
+}
