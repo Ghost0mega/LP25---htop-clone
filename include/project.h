@@ -5,6 +5,12 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
+#include <string.h>
+#include <ctype.h>
+#include <pwd.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "config.h"
 #include "utils.h"
