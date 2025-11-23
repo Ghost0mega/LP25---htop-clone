@@ -19,6 +19,7 @@ int main(void) {
     printf("Page size: %d bytes\n", page_size);
     long total_ram = get_total_ram_b();
     printf("Total RAM: %ld bytes\n", total_ram);
+    get_process_info(10768, NULL);
 
     /* shutdown */
     // ui_shutdown();
