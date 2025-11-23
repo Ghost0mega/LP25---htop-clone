@@ -19,7 +19,14 @@ int main(void) {
     printf("Page size: %d bytes\n", page_size);
     long total_ram = get_total_ram_b();
     printf("Total RAM: %ld bytes\n", total_ram);
-    get_process_info(10768, NULL);
+
+    printf("Fetching info for process with PID 10768...\n");
+    process_info info;
+    if (get_process_info(10768, &info) == 0) {
+        printf("Process 10768: %s, State: %c\nUptime %lds\nCpu time: %lu, Cpu usage: %.2lf\nMemory usage: %.2lf\n", info.name, (char)info.state, uptime, info.cpu_utime + info.cpu_stime, info.mem_usage);
+    } else {
+        printf("Failed to get process info for PID 10768\n");
+    }
 
     /* shutdown */
     // ui_shutdown();
