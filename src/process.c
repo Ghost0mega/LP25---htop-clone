@@ -92,25 +92,65 @@ int get_process_amount(void);
  * @return 0 on success, other on failure (e.g., process not found).
  */
 int get_process_info(int pid, process_info *info) {
-    FILE *fp;
     char path[64];
     snprintf(path, sizeof(path), "/proc/%d/stat", pid);
-    fp = fopen(path, "r");
+    FILE *fp = fopen(path, "r");
     if (!fp) {
         return -1;
     }
-    // char stat[1024];
-    // size_t bytes = fread(stat, 1, sizeof(stat) - 1, fp);
-    // if (bytes == 0) {
-    //     if (ferror(fp)) {
-    //         return -1;
-    //     }
-    //     stat[0] = '\0';
-    // } else {
-    //     stat[bytes] = '\0';
-    // }
-    // printf("Path : %s \nStat : %s \n", path, stat);
+
+    char buf[1024];
+    size_t n = fread(buf, 1, sizeof(buf) - 1, fp);
     fclose(fp);
+    buf[n] = '\0';
+
+    char comm[256];
+    char state_char;
+    long rss;
+
+    int matched = sscanf(
+        buf,
+        "%d (%255[^)]) %c "              // 1-3: pid, comm, state
+        "%*d %*d %*d %*d %*d "           // 4-8: ppid, pgrp, session, tty_nr, tpgid
+        "%*u %*u %*u %*u %*u "           // 9-13: flags, minflt, cminflt, majflt, cmajflt
+        "%lu %lu "                       // 14-15: utime, stime
+        "%*d %*d %*d %*d %*d %*d "       // 16-21: cutime, cstime, priority, nice, num_threads, itrealvalue
+        "%lu "                           // 22: starttime
+        "%*u "                           // 23: vsize
+        "%ld",                           // 24: rss (pages)
+        &info->pid,
+        comm,
+        &state_char,
+        &info->cpu_utime,
+        &info->cpu_stime,
+        &info->starttime,
+        &rss
+    );
+
+    if (matched != 7) {
+        return -1;
+    }
+
+    strncpy(info->name, comm, sizeof(info->name));
+    info->name[sizeof(info->name)-1] = '\0';
+    info->state = (process_state)state_char;
+
+    // Calculate Memory Usage
+    long page_size = get_page_size();
+    long total_ram = get_total_ram_b();
+    // printf("Total RAM: %ld bytes\n", total_ram);
+    // printf("RSS (pages): %ld\n", rss);
+    // printf("Page size: %ld bytes\n", page_size);
+    // printf("RSS in bytes: %ld\n", rss * page_size);
+
+    
+    if (total_ram > 0) {
+        long rss_bytes = rss * page_size;
+        info->mem_usage = (double)rss_bytes / total_ram * 100.0;
+    } else {
+        info->mem_usage = 0.0;
+    }
+
     return 0;
 }
 

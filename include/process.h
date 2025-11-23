@@ -1,8 +1,24 @@
 #ifndef PROCESS_H
 #define PROCESS_H
 
+typedef enum {
+    PROCESS_STATE_RUNNING = 'R',
+    PROCESS_STATE_SLEEPING = 'S',
+    PROCESS_STATE_DISK_SLEEP = 'D',
+    PROCESS_STATE_ZOMBIE = 'Z',
+    PROCESS_STATE_STOPPED = 'T',
+    PROCESS_STATE_TRACING_STOP = 't',
+    PROCESS_STATE_DEAD = 'X',
+    PROCESS_STATE_WAKEKILL = 'K',
+    PROCESS_STATE_WAKING = 'W',
+    PROCESS_STATE_PARKED = 'P',
+    PROCESS_STATE_IDLE = 'I',
+    PROCESS_STATE_UNKNOWN = '?'
+} process_state;
+
 typedef struct process_info {
     int pid;
+    process_state state;
     char name[256];
     char user[64];
     double cpu_usage;
