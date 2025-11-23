@@ -108,6 +108,7 @@ int get_process_info(int pid, process_info *info) {
     char state_char;
     long rss;
 
+    // Reference: https://stackoverflow.com/questions/39066998/what-are-the-meaning-of-values-at-proc-pid-stat
     int matched = sscanf(
         buf,
         "%d (%255[^)]) %c "              // 1-3: pid, comm, state
@@ -145,9 +146,9 @@ int get_process_info(int pid, process_info *info) {
 
     
     if (total_ram > 0) {
-        info->mem_usage = (double)(rss * page_size);
+        info->mem_usage = (unsigned long)(rss * page_size);
     } else {
-        info->mem_usage = 0.0;
+        info->mem_usage = 0;
     }
 
     info->uptime = get_system_uptime() - (info->starttime / get_clock_ticks_per_second());

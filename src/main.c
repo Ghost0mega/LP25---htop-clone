@@ -26,7 +26,7 @@ int main(void) {
     process_info info;
     if (get_process_info(pid_test, &info) == 0) {
         info.cpu_usage = info.cpu_stime + info.cpu_utime;
-        printf("Process %d: %s\nState: %c\nUptime %lds\nCpu usage: %lf\nMemory usage: %lf\n", pid_test, info.name, (char)info.state, info.uptime, info.cpu_usage, info.mem_usage); 
+        printf("Process %d: %s\nState: %c\nUptime %lds\nCpu usage: %lu\nMemory usage: %lu\n", pid_test, info.name, (char)info.state, info.uptime, info.cpu_usage, info.mem_usage); 
     } else {
         printf("Failed to get process info for PID %d\n", pid_test);
     }
