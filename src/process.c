@@ -96,6 +96,22 @@ int get_process_info(int pid, process_info *info) {
     char path[64];
     snprintf(path, sizeof(path), "/proc/%d/stat", pid);
     fp = fopen(path, "r");
+    if (!fp) {
+        return -1;
+    }
+    // char stat[1024];
+    // size_t bytes = fread(stat, 1, sizeof(stat) - 1, fp);
+    // if (bytes == 0) {
+    //     if (ferror(fp)) {
+    //         return -1;
+    //     }
+    //     stat[0] = '\0';
+    // } else {
+    //     stat[bytes] = '\0';
+    // }
+    // printf("Path : %s \nStat : %s \n", path, stat);
+    fclose(fp);
+    return 0;
 }
 
 /**
