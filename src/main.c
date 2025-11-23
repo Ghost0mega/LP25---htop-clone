@@ -20,12 +20,15 @@ int main(void) {
     long total_ram = get_total_ram_b();
     printf("Total RAM: %ld bytes\n", total_ram);
 
-    printf("Fetching info for process with PID 10768...\n");
+    int pid_test = 1; // Usually, PID 1 is the init/systemd process
+
+    printf("Fetching info for process with PID %d...\n", pid_test);
     process_info info;
-    if (get_process_info(10768, &info) == 0) {
-        printf("Process 10768: %s, State: %c\nUptime %lds\nCpu time: %lu, Cpu usage: %.2lf\nMemory usage: %.2lf\n", info.name, (char)info.state, uptime, info.cpu_utime + info.cpu_stime, info.mem_usage);
+    if (get_process_info(pid_test, &info) == 0) {
+        info.cpu_usage = info.cpu_stime + info.cpu_utime;
+        printf("Process %d: %s\nState: %c\nUptime %lds\nCpu usage: %lf\nMemory usage: %lf\n", pid_test, info.name, (char)info.state, info.uptime, info.cpu_usage, info.mem_usage); 
     } else {
-        printf("Failed to get process info for PID 10768\n");
+        printf("Failed to get process info for PID %d\n", pid_test);
     }
 
     /* shutdown */

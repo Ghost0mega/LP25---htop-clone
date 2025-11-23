@@ -145,11 +145,12 @@ int get_process_info(int pid, process_info *info) {
 
     
     if (total_ram > 0) {
-        long rss_bytes = rss * page_size;
-        info->mem_usage = (double)rss_bytes / total_ram * 100.0;
+        info->mem_usage = (double)(rss * page_size);
     } else {
         info->mem_usage = 0.0;
     }
+
+    info->uptime = get_system_uptime() - (info->starttime / get_clock_ticks_per_second());
 
     return 0;
 }
