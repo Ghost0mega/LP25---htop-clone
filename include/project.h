@@ -3,8 +3,13 @@
 
 /* Central project header: includes commonly used headers and project headers. */
 
-#include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <pthread.h>
+#include <unistd.h>
+#include <stdlib.h>
+
+
 
 #include "config.h"
 #include "utils.h"
