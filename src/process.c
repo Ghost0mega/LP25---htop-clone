@@ -71,6 +71,25 @@ int get_page_size(void) {
     return sysconf(_SC_PAGESIZE);
 }
 
+void print_process_info(process_info *info) {
+    printf("PID: %d \t| Name: %s \t| State: %c \t| CPU Usage: %lu \t| Memory Usage: %lu \t| Uptime: %ld seconds\n",
+           info->pid,
+           info->name,
+           (char)info->state,
+           info->cpu_usage,
+           info->mem_usage,
+           info->uptime);
+}
+
+
+void print_all_processes(process_info *processes, size_t count) {
+    for (size_t i = 0; i < count; i++) {
+        if (processes[i].pid != 0) {
+            print_process_info(&processes[i]);
+        }
+    }
+}
+
 
 /* Process handling API (stub) */
 
@@ -201,11 +220,26 @@ process_info *get_all_processes() {
         return NULL;
     }
 
-    while (pid_list[count] != 0) {
-        printf("PID: %d\n", pid_list[count]);
+
+    while (pid_list[count + 3] != 0) { // skipping 3 lines removes ghost processes for some reason
+        // printf("PID: %d\n", pid_list[count]);
         count++;
     }
+    // printf("Total processes found: %zu\n", count);
+    process_info *process_list = malloc(count * sizeof(process_info));
+    if (process_list == NULL) {
+        free(pid_list);
+        return NULL;
+    }
 
-    return NULL;
+    for (size_t i = 0; i < count; i++) {
+        if (pid_list[i] != 0 ) {
+            get_process_info(pid_list[i], &process_list[i]); 
+        }
+        // print_process_info(&process_list[i]);
+    }
+
+    free(pid_list);
+    return process_list;
 }
 
