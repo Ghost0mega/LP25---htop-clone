@@ -30,14 +30,9 @@ int main(void) {
     // } else {
     //     printf("Failed to get process info for PID %d\n", pid_test);
     // }
+    get_all_processes();
 
 
-    pthread_t th1;
-
-
-    pthread_create(&th1, NULL, get_all_pids, NULL);
-
-    pthread_join(th1, NULL);
 
     /* shutdown */
     // ui_shutdown();
