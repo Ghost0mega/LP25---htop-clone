@@ -147,7 +147,7 @@ int get_process_info(int pid, process_info *info) {
 }
 
 
-void* get_all_pids(void* arg) {
+int *get_all_pids(void* arg) {
     (void)arg; // Unused parameter
     char buffer[128];
     FILE *fp;
@@ -162,13 +162,50 @@ void* get_all_pids(void* arg) {
 
     fgets(buffer, sizeof(buffer), fp);
 
-    // Lit la sortie
-    while (fgets(buffer, sizeof(buffer), fp) != NULL) {
-        printf("%s", buffer);
+    int* pid_list = malloc(1000 * sizeof(int));
+    if (pid_list == NULL) {
+        perror("Erreur malloc");
+        pclose(fp);
+        exit(1);
     }
 
-    // Ferme le processus
+    int count = 0;
+    while (fgets(buffer, sizeof(buffer), fp) != NULL) {
+        pid_list[count] = atoi(buffer);
+        count++;
+        if (count >= 1000) {
+            pid_list = realloc(pid_list, (count + 1000) * sizeof(int));
+            if (pid_list == NULL) {
+                perror("Erreur realloc");
+                pclose(fp);
+                exit(1);
+            }
+        }
+    }
+    
+    pid_list = realloc(pid_list, count * sizeof(int)); // Resize to actual count
+    if (pid_list == NULL) {
+        perror("Erreur realloc final");
+        pclose(fp);
+        exit(1);
+    }
+
     pclose(fp);
+    return pid_list;
+}
+
+process_info *get_all_processes() {
+    size_t count = 0;
+    int *pid_list = get_all_pids(NULL);
+    if (pid_list == NULL) {
+        return NULL;
+    }
+
+    while (pid_list[count] != 0) {
+        printf("PID: %d\n", pid_list[count]);
+        count++;
+    }
+
     return NULL;
 }
 
