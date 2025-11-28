@@ -73,14 +73,6 @@ int get_page_size(void);
  */
 int get_process_info(int pid, process_info *info);
 
-/**
- * Task to be run every few seconds.
- */
-void task_every_seconds();
-
-/**
- * Task to be run once.
- */
-void task_once();
+void* get_all_pids(void* arg);
 
 #endif /* PROCESS_H */

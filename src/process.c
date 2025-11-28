@@ -147,33 +147,28 @@ int get_process_info(int pid, process_info *info) {
 }
 
 
-void task_every_seconds() {
-    for (int i = 0; i < 5; i++) {
-        char buffer[128];
-        FILE *fp;
+void* get_all_pids(void* arg) {
+    (void)arg; // Unused parameter
+    char buffer[128];
+    FILE *fp;
 
-        // Exécute la commande
-        fp = popen("ps -ef | awk '{print $2, $7}'", "r");
+    // Exécute la commande
+    fp = popen("ps -ef | awk '{print $2}'", "r");
 
-        if (fp == NULL) {
-            perror("Erreur popen");
-            exit(1);
-        }
-
-        fgets(buffer, sizeof(buffer), fp);
-
-        // Lit la sortie
-        while (fgets(buffer, sizeof(buffer), fp) != NULL) {
-            printf("%s", buffer);
-        }
-
-        // Ferme le processus
-        pclose(fp);
-
-        sleep(2);
+    if (fp == NULL) {
+        perror("Erreur popen");
+        exit(1);
     }
+
+    fgets(buffer, sizeof(buffer), fp);
+
+    // Lit la sortie
+    while (fgets(buffer, sizeof(buffer), fp) != NULL) {
+        printf("%s", buffer);
+    }
+
+    // Ferme le processus
+    pclose(fp);
+    return NULL;
 }
 
-void task_once() {
-    printf("Action exécutée une seule fois !\n");
-}
