@@ -44,7 +44,7 @@ int main(void) {
     printf("Total processes retrieved: %zu\n", count);
     print_all_processes(process_list, count);
 
-    free(process_list);
+    free(process_list);   //would be nice to multithread this
 
 
 
