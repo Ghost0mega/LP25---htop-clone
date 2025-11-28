@@ -71,19 +71,28 @@ int get_page_size(void) {
     return sysconf(_SC_PAGESIZE);
 }
 
-/**
- * Get the total number of processes in the system.
- * @return Total number of processes.
- */
-int get_process_amount(void);
+void print_process_info(process_info *info) {
+    printf("PID: %d \t| Name: %s \t| State: %c \t| CPU Usage: %lu \t| Memory Usage: %lu \t| Uptime: %ld seconds\n",
+           info->pid,
+           info->name,
+           (char)info->state,
+           info->cpu_usage,
+           info->mem_usage,
+           info->uptime);
+}
+
+
+void print_all_processes(process_info *processes, size_t count) {
+    for (size_t i = 0; i < count; i++) {
+        if (processes[i].pid != 0) {
+            print_process_info(&processes[i]);
+        }
+    }
+}
+
 
 /* Process handling API (stub) */
 
-/**
- * Initialize the process subsystem.
- * @return 0 on success, other on failure.
- */
-// int process_init(void);
 
 /**
  * Fill the struct info with data about the process with the given pid.
@@ -156,9 +165,81 @@ int get_process_info(int pid, process_info *info) {
     return 0;
 }
 
-/**
- * Get a list of all current processes.
- * @param count Pointer to size_t to store the number of processes.
- * @return Dynamically allocated array of process_info structs. Caller must free.
- */
-process_info *get_all(size_t *count);
+
+int *get_all_pids(void* arg) {
+    (void)arg; // Unused parameter
+    char buffer[128];
+    FILE *fp;
+
+    // Exécute la commande
+    fp = popen("ps -ef | awk '{print $2}'", "r");
+
+    if (fp == NULL) {
+        perror("Erreur popen");
+        exit(1);
+    }
+
+    fgets(buffer, sizeof(buffer), fp);
+
+    int* pid_list = malloc(1000 * sizeof(int));
+    if (pid_list == NULL) {
+        perror("Erreur malloc");
+        pclose(fp);
+        exit(1);
+    }
+
+    int count = 0;
+    while (fgets(buffer, sizeof(buffer), fp) != NULL) {
+        pid_list[count] = atoi(buffer);
+        count++;
+        if (count >= 1000) {
+            pid_list = realloc(pid_list, (count + 1000) * sizeof(int));
+            if (pid_list == NULL) {
+                perror("Erreur realloc");
+                pclose(fp);
+                exit(1);
+            }
+        }
+    }
+    
+    pid_list = realloc(pid_list, count * sizeof(int)); // Resize to actual count
+    if (pid_list == NULL) {
+        perror("Erreur realloc final");
+        pclose(fp);
+        exit(1);
+    }
+
+    pclose(fp);
+    return pid_list;
+}
+
+process_info *get_all_processes() {
+    size_t count = 0;
+    int *pid_list = get_all_pids(NULL);
+    if (pid_list == NULL) {
+        return NULL;
+    }
+
+
+    while (pid_list[count + 3] != 0) { // skipping 3 lines removes ghost processes for some reason
+        // printf("PID: %d\n", pid_list[count]);
+        count++;
+    }
+    // printf("Total processes found: %zu\n", count);
+    process_info *process_list = malloc(count * sizeof(process_info));
+    if (process_list == NULL) {
+        free(pid_list);
+        return NULL;
+    }
+
+    for (size_t i = 0; i < count; i++) {
+        if (pid_list[i] != 0 ) {
+            get_process_info(pid_list[i], &process_list[i]); 
+        }
+        // print_process_info(&process_list[i]);
+    }
+
+    free(pid_list);
+    return process_list;
+}
+
