@@ -2,12 +2,11 @@
 #define PROJECT_H
 
 /* Central project header: includes commonly used headers and project headers. */
-
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
 #include <unistd.h>
-#include <stdlib.h>
 
 
 

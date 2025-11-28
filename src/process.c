@@ -2,7 +2,7 @@
 
 
 void* task_every_seconds(void* fp) {
-    while (1) {
+    for (int i = 0; i < 5; i++) {
         char buffer[128];
         FILE *fp;
 
@@ -32,18 +32,4 @@ void* task_every_seconds(void* fp) {
 void* task_once(void* arg) {
     printf("Action exécutée une seule fois !\n");
     return NULL;
-}
-
-int main() {
-    pthread_t th1, th2;
-
-
-    pthread_create(&th1, NULL, task_every_seconds, NULL);
-    pthread_create(&th2, NULL, task_once, NULL);
-
-    pthread_join(th1, NULL);
-    pthread_join(th2, NULL);
-
-    
-    return 0;
 }

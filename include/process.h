@@ -12,7 +12,8 @@ typedef struct process_info {
 
 /* Process handling API (stub) */
 
-int process_init(void);
-void process_poll(void);
+void* task_every_seconds(void* fp);
+
+void* task_once(void* arg);
 
 #endif /* PROCESS_H */

@@ -1,19 +1,17 @@
 #include "../include/project.h"
 
 int main(void) {
-    /* initialize subsystems */
-    config_load(NULL);
-    manager_init();
-    process_init();
-    machine_init();
-    network_init();
-    ui_init();
 
-    printf("Hello, World! (from project layout)\n");
+    pthread_t th1, th2;
 
-    /* shutdown */
-    ui_shutdown();
-    manager_shutdown();
 
+    pthread_create(&th1, NULL, task_every_seconds, NULL);
+    pthread_create(&th2, NULL, task_once, NULL);
+
+    pthread_join(th1, NULL);
+    pthread_join(th2, NULL);
+
+    
     return 0;
+
 }
