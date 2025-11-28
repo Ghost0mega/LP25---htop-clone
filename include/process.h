@@ -20,7 +20,7 @@ typedef struct process_info {
     int pid;
     process_state state;
     char name[256];
-    char user[64];
+    // char user[64];
     unsigned long cpu_usage;
     unsigned long mem_usage;
     long uptime;
@@ -61,6 +61,19 @@ int get_number_of_cpus(void);
  * @return Page size in bytes.
  */
 int get_page_size(void);
+
+/**
+ * Print process information.
+ * @param info Pointer to process_info struct.
+ */
+void print_process_info(process_info *info);
+
+/**
+ * Print all processes information.
+ * @param processes Pointer to array of process_info structs.
+ * @param count Number of processes in the array.
+ */
+void print_all_processes(process_info *processes, size_t count);
 
 
 /* Process handling API (stub) */

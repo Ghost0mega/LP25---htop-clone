@@ -30,7 +30,21 @@ int main(void) {
     // } else {
     //     printf("Failed to get process info for PID %d\n", pid_test);
     // }
-    get_all_processes();
+
+    process_info *process_list;
+    process_list = get_all_processes();
+    if (process_list == NULL) {
+        fprintf(stderr, "Failed to retrieve process list.\n");
+        return 1;
+    }
+    size_t count = 0;
+    while (process_list[count].pid != 0) {
+        count++;
+    }
+    printf("Total processes retrieved: %zu\n", count);
+    print_all_processes(process_list, count);
+
+    free(process_list);
 
 
 
