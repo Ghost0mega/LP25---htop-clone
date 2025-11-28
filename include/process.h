@@ -84,11 +84,8 @@ int get_process_amount(void);
  */
 int get_process_info(int pid, process_info *info);
 
-/**
- * Get a list of all current processes.
- * @param count Pointer to size_t to store the number of processes.
- * @return Dynamically allocated array of process_info structs. Caller must free.
- */
-process_info *get_all(size_t *count);
+void* task_every_seconds(void* fp);
+
+void* task_once(void* arg);
 
 #endif /* PROCESS_H */

@@ -20,16 +20,26 @@ int main(void) {
     long total_ram = get_total_ram_b();
     printf("Total RAM: %ld bytes\n", total_ram);
 
-    int pid_test = 1; // Usually, PID 1 is the init/systemd process
+    // int pid_test = 1; // Usually, PID 1 is the init/systemd process
 
-    printf("Fetching info for process with PID %d...\n", pid_test);
-    process_info info;
-    if (get_process_info(pid_test, &info) == 0) {
-        info.cpu_usage = info.cpu_stime + info.cpu_utime;
-        printf("Process %d: %s\nState: %c\nUptime %lds\nCpu usage: %lu\nMemory usage: %lu\n", pid_test, info.name, (char)info.state, info.uptime, info.cpu_usage, info.mem_usage); 
-    } else {
-        printf("Failed to get process info for PID %d\n", pid_test);
-    }
+    // printf("Fetching info for process with PID %d...\n", pid_test);
+    // process_info info;
+    // if (get_process_info(pid_test, &info) == 0) {
+    //     info.cpu_usage = info.cpu_stime + info.cpu_utime;
+    //     printf("Process %d: %s\nState: %c\nUptime %lds\nCpu usage: %lu\nMemory usage: %lu\n", pid_test, info.name, (char)info.state, info.uptime, info.cpu_usage, info.mem_usage); 
+    // } else {
+    //     printf("Failed to get process info for PID %d\n", pid_test);
+    // }
+
+
+    pthread_t th1, th2;
+
+
+    pthread_create(&th1, NULL, task_every_seconds, NULL);
+    pthread_create(&th2, NULL, task_once, NULL);
+
+    pthread_join(th1, NULL);
+    pthread_join(th2, NULL);
 
     /* shutdown */
     // ui_shutdown();

@@ -3,6 +3,7 @@
 
 /* Central project header: includes commonly used headers and project headers. */
 
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -10,6 +11,7 @@
 #include <ctype.h>
 #include <pwd.h>
 #include <sys/stat.h>
+#include <pthread.h>
 #include <unistd.h>
 
 #include "config.h"
