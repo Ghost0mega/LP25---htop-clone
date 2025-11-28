@@ -71,19 +71,9 @@ int get_page_size(void) {
     return sysconf(_SC_PAGESIZE);
 }
 
-/**
- * Get the total number of processes in the system.
- * @return Total number of processes.
- */
-int get_process_amount(void);
 
 /* Process handling API (stub) */
 
-/**
- * Initialize the process subsystem.
- * @return 0 on success, other on failure.
- */
-// int process_init(void);
 
 /**
  * Fill the struct info with data about the process with the given pid.
@@ -157,7 +147,7 @@ int get_process_info(int pid, process_info *info) {
 }
 
 
-void* task_every_seconds(void* fp) {
+void task_every_seconds() {
     for (int i = 0; i < 5; i++) {
         char buffer[128];
         FILE *fp;
@@ -182,10 +172,8 @@ void* task_every_seconds(void* fp) {
 
         sleep(2);
     }
-    return NULL;
 }
 
-void* task_once(void* arg) {
+void task_once() {
     printf("Action exécutée une seule fois !\n");
-    return NULL;
 }
