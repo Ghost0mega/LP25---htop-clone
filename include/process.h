@@ -20,7 +20,7 @@ typedef struct process_info {
     int pid;
     process_state state;
     char name[256];
-    char user[64];
+    // char user[64];
     unsigned long cpu_usage;
     unsigned long mem_usage;
     long uptime;
@@ -63,18 +63,20 @@ int get_number_of_cpus(void);
 int get_page_size(void);
 
 /**
- * Get the total number of processes in the system.
- * @return Total number of processes.
+ * Print process information.
+ * @param info Pointer to process_info struct.
  */
-int get_process_amount(void);
-
-/* Process handling API (stub) */
+void print_process_info(process_info *info);
 
 /**
- * Initialize the process subsystem.
- * @return 0 on success, other on failure.
+ * Print all processes information.
+ * @param processes Pointer to array of process_info structs.
+ * @param count Number of processes in the array.
  */
-// int process_init(void);
+void print_all_processes(process_info *processes, size_t count);
+
+
+/* Process handling API (stub) */
 
 /**
  * Fill the struct info with data about the process with the given pid.
@@ -85,10 +87,16 @@ int get_process_amount(void);
 int get_process_info(int pid, process_info *info);
 
 /**
- * Get a list of all current processes.
- * @param count Pointer to size_t to store the number of processes.
- * @return Dynamically allocated array of process_info structs. Caller must free.
+ * Get a list of all PIDs in the system.
+ * @param arg Unused parameter (for thread compatibility).
+ * @return Pointer to an array of PIDs (must be freed by caller).
  */
-process_info *get_all(size_t *count);
+int *get_all_pids(void* arg);
+
+/**
+ * Get information about all processes in the system.
+ * @return Pointer to an array of process_info structs (must be freed by caller).
+ */
+process_info *get_all_processes(void);
 
 #endif /* PROCESS_H */
