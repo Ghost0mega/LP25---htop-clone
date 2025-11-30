@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
 
             case 'P':
                 given_parameters[parameters_count].parameter_type = PARAM_PORT;
-                given_parameters[parameters_count].parameter_value.int_param = opt;
+                given_parameters[parameters_count].parameter_value.int_param = optarg;
                 break;
 
             case 'l':
