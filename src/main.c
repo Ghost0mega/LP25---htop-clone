@@ -51,6 +51,7 @@ int main(int argc, char *argv[]) {
                 given_parameters[parameters_count].parameter_type = PARAM_HELP;
                 given_parameters[parameters_count].parameter_value.flag_param = true;
                 parameters_count++;
+                manual();
                 break;
             
             case 1:
