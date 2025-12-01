@@ -1,6 +1,8 @@
 #ifndef MACHINE_H
 #define MACHINE_H
 
+#include "network.h"
+
 typedef struct machine_info {
     char name[64];
     int process_count;
