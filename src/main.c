@@ -39,6 +39,7 @@ int main(int argc, char *argv[]) {
         {.name = "username", .has_arg = 1, .flag = 0, .val = 'u'},
         {.name = "password", .has_arg = 1, .flag = 0, .val = 'p'},
         {.name = "all", .has_arg = 0, .flag = 0, .val = 'a'},
+        {0, 0, 0, 0}
     };
 
     //Do the modification of the arguments:
@@ -103,6 +104,14 @@ int main(int argc, char *argv[]) {
                 given_parameters[parameters_count].parameter_type = PARAM_ALL;
                 given_parameters[parameters_count].parameter_value.flag_param = true;
                 parameters_count++;
+                break;
+
+            case '?':
+                printf("Invalid Arguments\n");
+                break;
+
+            default:
+                printf("Local mode\n");
                 break;
         }
     }
