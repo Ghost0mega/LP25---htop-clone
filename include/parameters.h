@@ -3,6 +3,8 @@
 #include <stdbool.h>
 
 #define STR_MAX 1024
+#define COLOR_BOLD  "\e[1m"
+#define COLOR_OFF   "\e[m"
 
 /*=========
 *  TYPES:  *
@@ -41,5 +43,10 @@ typedef struct {
  *  Return true if the given parameters are valid.
  */
 bool params_validate(parameters_table *params, int params_count);
+
+/**
+ * Print the manual in the terminal.
+ */
+void manual();
 
 #endif /* PARAMETERS_H */
