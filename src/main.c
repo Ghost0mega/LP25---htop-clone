@@ -35,15 +35,26 @@ int main(void) {
 
   pthread_t th;
 
-  process_info *process_list;
+  process_info *process_list = NULL;
+  bool stop_flag = false;
+  /* structure pour passer deux arguments au thread (allouée dynamiquement) */
+  struct thread_args {
+    process_info **process_list_ptr;
+    bool *stop_flag_ptr;
+  } *args = malloc(sizeof(*args));
+  if (!args) {
+    fprintf(stderr, "Failed to allocate thread args\n");
+    return 1;
+  }
+  args->process_list_ptr = &process_list;
+  args->stop_flag_ptr = &stop_flag;
 
-  pthread_create(&th, NULL, get_all_processes, (void *)&process_list);
+  pthread_create(&th, NULL, get_all_processes, (void *)args);
 
-  
   for (int i = 0; i < 10; i++) {
     sleep(1);
     printf("process_list[%i].pid = %d\n", i, process_list[i].pid);
-/*  
+    /*  
     if (process_list == NULL) {
       fprintf(stderr, "Failed to retrieve process list.\n");
       return 1;
@@ -55,20 +66,25 @@ int main(void) {
     printf("Total processes retrieved: %zu\n", count);
     print_all_processes(process_list, count);
 
-    
-
     printf("System information retrieval complete.\n");
 
     /* shutdown */
     // ui_shutdown();
     // manager_shutdown();
 
-    
+
+    if (i == 5) {
+      stop_flag = true;
+      printf("#DEBUG Signaled to stop process retrieval thread.\n");
+    }
   }
-  
-  free(process_list); 
+
+  /* signaler au thread d'arrêter */
+  stop_flag = true;
 
   pthread_join(th, NULL);
+  free(process_list);
+  free(args);
 
   return 0;
 }
