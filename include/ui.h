@@ -1,6 +1,8 @@
 #ifndef UI_H
 #define UI_H
 
+#include <ncurses.h>
+
 /* UI API (stub) */
 
 int ui_init(void);
