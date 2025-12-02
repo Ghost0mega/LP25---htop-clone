@@ -3,13 +3,7 @@
 #define PARAMETER_BUFFER_SIZE 16
 
 int main(int argc, char *argv[]) {
-    /* initialize subsystems */
-    config_load(NULL);
-    manager_init();
-    process_init();
-    machine_init();
-    network_init();
-    ui_init();
+
 
     //Control of the parameters:
     parameters_table given_parameters[PARAMETER_BUFFER_SIZE]; //parameters received by the user.
@@ -74,7 +68,8 @@ int main(int argc, char *argv[]) {
 
             case 'P':
                 given_parameters[parameters_count].parameter_type = PARAM_PORT;
-                given_parameters[parameters_count].parameter_value.int_param = optarg;
+                given_parameters[parameters_count].parameter_value.int_param = atoi(optarg);
+                parameters_count++;
                 break;
 
             case 'l':
@@ -120,9 +115,7 @@ int main(int argc, char *argv[]) {
     //Validate the final parameters:
     if (!params_validate(given_parameters, parameters_count)) return EXIT_FAILURE;
 
-    /* shutdown */
-    ui_shutdown();
-    manager_shutdown();
+
 
     return EXIT_SUCCESS;
 }
