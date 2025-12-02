@@ -3,16 +3,14 @@
 
 #include <ncurses.h>
 
-/* UI API (stub) */
+/**
+ *  Generate fake processus
+ */
+int nombre_processus(int pids[]);
 
-int ui_init(void);
-void ui_draw(void);
-void ui_shutdown(void);
-
-#endif /* UI_H */
-#ifndef UI_H
-#define UI_H
-
-void ui_init(void);
+/**
+ * Main ui loop
+ */
+void ui_loop();
 
 #endif /* UI_H */

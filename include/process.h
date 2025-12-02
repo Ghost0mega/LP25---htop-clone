@@ -8,7 +8,7 @@ typedef struct process_info {
     double cpu_usage;
     double mem_usage;
     long uptime;
-} process_info_t;
+} process_info;
 
 /* Process handling API (stub) */
 
