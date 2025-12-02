@@ -162,6 +162,7 @@ int *get_all_pids(void *arg) {
     exit(1);
   }
 
+  /* skip header line if any */
   fgets(buffer, sizeof(buffer), fp);
 
   int *pid_list = malloc(1000 * sizeof(int));
@@ -176,58 +177,82 @@ int *get_all_pids(void *arg) {
     pid_list[count] = atoi(buffer);
     count++;
     if (count >= 1000) {
-      pid_list = realloc(pid_list, (count + 1000) * sizeof(int));
-      if (pid_list == NULL) {
+      int *tmp = realloc(pid_list, (count + 1000) * sizeof(int));
+      if (tmp == NULL) {
         perror("Erreur realloc");
+        free(pid_list);
         pclose(fp);
         exit(1);
       }
+      pid_list = tmp;
     }
   }
 
-  pid_list = realloc(pid_list, count * sizeof(int)); // Resize to actual count
-  if (pid_list == NULL) {
+  /* add sentinel 0 */
+  int *tmp = realloc(pid_list, (count + 1) * sizeof(int));
+  if (tmp == NULL) {
     perror("Erreur realloc final");
+    free(pid_list);
     pclose(fp);
     exit(1);
   }
+  pid_list = tmp;
+  pid_list[count] = 0;
 
   pclose(fp);
   return pid_list;
 }
 
-void *get_all_processes(void *pointer) {
-  process_info **process_list_ptr = (process_info **)pointer;
-  
-  while (1) {
-    size_t count = 0;
-    int *pid_list = get_all_pids(NULL);
-    if (pid_list == NULL) {
-      return NULL;
-    }
+void *get_all_processes(void *arg) {
+  struct thread_args {
+    process_info **process_list_ptr;
+    bool *stop_flag_ptr;
+  } *args = arg;
 
-    while (pid_list[count + 3] !=
-          0) { // skipping 3 lines removes ghost processes for some reason
-      // printf("PID: %d\n", pid_list[count]);
-      count++;
-    }
+  process_info **process_list_ptr = args->process_list_ptr;
+  bool *stop_flag = args->stop_flag_ptr;
 
-    process_info *process_list = malloc(count * sizeof(process_info));
-    if (process_list == NULL) {
-      free(pid_list);
-      return NULL;
-    }
-    
-    for (size_t i = 0; i < count; i++) {
-      if (pid_list[i] != 0) {
-        get_process_info(pid_list[i], &process_list[i]);
-      }
-      // print_process_info(&process_list[i]);
-    }
+   while (!(*stop_flag)) {
+     size_t count = 0;
+     int *pid_list = get_all_pids(NULL);
+     if (pid_list == NULL) {
+       return NULL;
+     }
 
-    *process_list_ptr = process_list;  // Assignez au pointeur original
-    
-    sleep(1);
-    free(pid_list);
-  }
-}
+    while (pid_list[count] != 0) {
+       count++;
+     }
+
+     process_info *process_list = calloc(count + 1, sizeof(process_info));
+     if (process_list == NULL) {
+       free(pid_list);
+       return NULL;
+     }
+     
+     for (size_t i = 0; i < count; i++) {
+       if (pid_list[i] != 0) {
+         get_process_info(pid_list[i], &process_list[i]);
+       }
+     }
+     /* terminateur */
+     process_list[count].pid = 0;
+
+     /* publier la nouvelle liste et libérer l'ancienne */
+     
+     if (*process_list_ptr != NULL) {
+       free(*process_list_ptr);
+     }
+     *process_list_ptr = process_list;
+     
+
+     sleep(1);
+     free(pid_list);
+   }
+   
+   /* libérer la dernière liste avant de quitter */
+   if (*process_list_ptr != NULL) {
+     free(*process_list_ptr);
+     *process_list_ptr = NULL;
+   }
+   return NULL;
+ }

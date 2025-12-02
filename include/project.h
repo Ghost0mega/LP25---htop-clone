@@ -13,6 +13,7 @@
 #include <sys/stat.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 #include "config.h"
 #include "utils.h"

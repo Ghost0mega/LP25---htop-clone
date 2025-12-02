@@ -88,7 +88,7 @@ int get_process_info(int pid, process_info *info);
 
 /**
  * Get a list of all PIDs in the system.
- * @param arg Unused parameter (for thread compatibility).
+ * @param arg Unused parameter.
  * @return Pointer to an array of PIDs (must be freed by caller).
  */
 int *get_all_pids(void *arg);
@@ -97,6 +97,6 @@ int *get_all_pids(void *arg);
  * Get information about all processes in the system.
  * @return Pointer to an array of process_info structs (must be freed by caller).
  */
-void *get_all_processes(void *pointer);
+void *get_all_processes(void *args);
 
 #endif /* PROCESS_H */
