@@ -32,26 +32,43 @@ int main(void) {
   //     printf("Failed to get process info for PID %d\n", pid_test);
   // }
 
+
+  pthread_t th;
+
   process_info *process_list;
-  process_list = get_all_processes();
-  if (process_list == NULL) {
-    fprintf(stderr, "Failed to retrieve process list.\n");
-    return 1;
+
+  pthread_create(&th, NULL, get_all_processes, (void *)&process_list);
+
+  
+  for (int i = 0; i < 10; i++) {
+    sleep(1);
+    printf("process_list[%i].pid = %d\n", i, process_list[i].pid);
+/*  
+    if (process_list == NULL) {
+      fprintf(stderr, "Failed to retrieve process list.\n");
+      return 1;
+    }*/
+    size_t count = 0;
+    while (process_list[count].pid != 0) {
+      count++;
+    }
+    printf("Total processes retrieved: %zu\n", count);
+    print_all_processes(process_list, count);
+
+    
+
+    printf("System information retrieval complete.\n");
+
+    /* shutdown */
+    // ui_shutdown();
+    // manager_shutdown();
+
+    
   }
-  size_t count = 0;
-  while (process_list[count].pid != 0) {
-    count++;
-  }
-  printf("Total processes retrieved: %zu\n", count);
-  print_all_processes(process_list, count);
+  
+  free(process_list); 
 
-  free(process_list); // would be nice to multithread this
-
-  printf("System information retrieval complete.\n");
-
-  /* shutdown */
-  // ui_shutdown();
-  // manager_shutdown();
+  pthread_join(th, NULL);
 
   return 0;
 }
