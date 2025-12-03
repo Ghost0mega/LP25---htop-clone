@@ -1,7 +1,7 @@
 CC := gcc
 CFLAGS := -std=c11 -Iinclude -Wall -Wextra -O2 -g
 # libs go here 
-LDFLAGS := -lncurses
+LDFLAGS := -lncurses -ltinfo
 
 SRCDIR := src
 BUILDDIR := build

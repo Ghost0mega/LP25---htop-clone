@@ -3,14 +3,7 @@
 
 #include <ncurses.h>
 
-/**
- *  Generate fake processus
- */
-int nombre_processus(int pids[]);
-
-/**
- * Main ui loop
- */
+// Main ui loop
 void ui_loop();
 
-#endif /* UI_H */
+#endif // UI_H
