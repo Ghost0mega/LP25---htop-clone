@@ -1,54 +1,101 @@
 #include "../include/project.h"
 
+/*
+ui_loop - boucle principale de l'interface utilisateur ncurses
+ 
+Cette fonction initialise ncurses, récupère périodiquement la liste
+des processus via get_processes(), affiche un tableau interactif
+(avec 5 onglets) et gère la navigation clavier (flèches, F1..F8, q).
+
+Comportement principal :
+- Récupère la liste des processus à chaque itération.
+- Gère la sélection et le scrolling (offset) pour l'affichage.
+- Affiche différentes vues selon l'onglet sélectionné (tab).
+- Nettoie proprement ncurses à la sortie.
+*/
+
+
 void ui_loop() {
-  int ch;                     // variable pour stocker la touche pressée
-  process_info *plist = NULL; // liste dynamique récupérée via get_processes
-  int count = get_processes(&plist); // recuperer le nombre de processus
-  if (count < 0) {
-    count = 0;
+  int ch; // caractère saisi par getch()
+  process_info *plist = NULL; // tableau des processus
+  int count = get_processes(&plist); // nombre de processus récupérés
+  if (count < 0) { // protection si get_processes a échoué
+    count = 0; 
   }
-  int selection =
-      0; // initialisation de l'incice pour le deplacement dans la liste de pids
-  int tab = 0;        // onglet courant (0=Processus, 1=CPU, 2=Mémoire, ...)
-  char key[128] = ""; // buffer pour afficher la touche pressée
 
-  initscr();            // initialise ncurses
-  noecho();             // ne pas afficher les touches
-  cbreak();             // lecture immédiate des touches
-  keypad(stdscr, TRUE); // permet d'utiliser F1..F12, flèches, etc.
+  /* Etat de l'interface */
+  int selection = 0; // index du processus actuellement sélectionné
+  int offset = 0; // index du premier processus affiché
+  int tab = 0; // onglet courant dans le menu
+  char key[128] = ""; // message texte récapitulant la dernière touche F détectée
 
-  int loop = 1;
+  /* Initialisation de ncurses */
+  initscr(); // démarre le mode ncurses 
+  noecho(); // n'affiche pas les touches saisies 
+  cbreak(); // mode cbreak : saisie caractère par caractère 
+  keypad(stdscr, TRUE); // active les touches spéciales (flèches, F-keys) 
+
+  int h, w; // hauteur et largeur de l'écran
+  getmaxyx(stdscr, h, w);
+
+  /* Fenêtre secondaire pour la liste qui permet de manipuler le contenu indépendamment */
+  WINDOW *listwin = newwin(h - 5, w, 5, 0); // hauteur = h-5, largeur = w, position y = 5 
+  scrollok(listwin, FALSE); // on gère manuellement le scrolling des éléments via la variable offset donc on désactive le scrolling automatique
+
+  int loop = 1; // flag pour controller la boucle principale
 
   while (loop) {
+
+    // A chaque itération on libère l'ancienne liste, on recharge la nouvelle pour garder les informations à jour
+    free(plist);
+    plist = NULL;
+    count = get_processes(&plist);
+    if (count < 0) {
+      count = 0;
+    }
+
+    /* Protections liées au redimensionnement de la fenetre */
+    if (selection >= count) {
+      selection = (count > 0 ? count - 1 : 0); // si l'index sélection dépasse, on le réduit
+    }
+    if (offset > selection) {
+      offset = selection; // l'offset ne doit pas être après la sélection 
+    }
+    if (offset < 0) {
+      offset = 0; // protection minimale comme precedemment
+    }
+
+    /* Ajustement de la fenêtre en cas de redimensionnement de la fenetre */
+    getmaxyx(stdscr, h, w);
+    if (listwin) {
+      int new_h = h - 5; // conserver la même logique de placement qu'avant
+      if (new_h < 1) {
+        new_h = 1; // s'assurer d'une hauteur minimale
+      }
+      wresize(listwin, new_h, w); // redimensionne la fenetre
+      mvwin(listwin, 5, 0); // repositionne la fenetre 
+      wclear(listwin); // efface les anciens contenus
+    }
+
+    /* Efface l'écran principal et affiche le menu */
     clear();
 
-    printw("Appuyez sur F1..F8 (q pour quitter) | Tab: %d | Selection: %d\n",
-           tab, selection);
-    printw("Key: %s\n", key);
+    /* Ligne de status : indications pour l'utilisateur */
+    printw("Appuyez sur F1..F8 (q pour quitter) | Tab: %d | Selection: %d\n", tab, selection);
+    printw("Key: %s\n", key); /* affiche la dernière touche F détectée */
     printw("Onglets: ");
 
-    // Afficher les onglets avec mise en surbrillance de l'onglet courant
-    // (attron sert a ça)
+    /* Affichage des onglets (Total, Processus, CPU, Mémoire, Réseau)
+       L'onglet actif est inversé visuellement (A_REVERSE).
+    */
     for (int t = 0; t < 5; t++) {
-      if (t == tab) {
-        attron(A_REVERSE);
-      }
+      if (t == tab) attron(A_REVERSE);
       switch (t) {
-      case 0:
-        printw("[Total]");
-        break;
-      case 1:
-        printw("[Processus]");
-        break;
-      case 2:
-        printw("[CPU]");
-        break;
-      case 3:
-        printw("[Mémoire]");
-        break;
-      case 4:
-        printw("[Réseau]");
-        break;
+        case 0: printw("[Total]"); break;
+        case 1: printw("[Processus]"); break;
+        case 2: printw("[CPU]"); break;
+        case 3: printw("[Mémoire]"); break;
+        case 4: printw("[Réseau]"); break;
       }
       if (t == tab) {
         attroff(A_REVERSE);
@@ -56,127 +103,110 @@ void ui_loop() {
       printw(" ");
     }
     printw("\n\n");
+    refresh(); // raffraichissement de l'ecran 
 
-    for (int i = 0; i < count; i++) {
+    /* Affichage des processus avec le scrolling */
+    wclear(listwin);
+    int max_lines = h - 7; // nombre de lignes disponibles pour la liste 
+
+    /* Boucle d'affichage : on parcourt les processus visibles en tenant compte de l'offset */
+    for (int i = offset; i < count && i < offset + max_lines; i++) {
       if (i == selection) {
-        attron(A_REVERSE);
+        wattron(listwin, A_REVERSE); // surligne la ligne sélectionnée 
       }
 
       if (plist) {
+        /* Affichage différent selon l'onglet actif */
         switch (tab) {
-        case 0: // Total
-
-          // Print header
-          // printw("%-6s %-20s %-8s %-8s %-15s\n", "PID", "Name", "CPU%",
-          // "MEM%", "Network");
-
-          // Print rows
-          for (int i = 0; i < count; i++) {
-            if (i == selection) {
-              attron(A_REVERSE);
-            }
-
-            if (plist) {
-              char truncated_name[21];
-              snprintf(truncated_name, sizeof(truncated_name), "%-20.20s",
-                       plist[i].name);
-
-              printw("%-6d %-20s %-8.2f %-8.2f %-15s\n", plist[i].pid,
-                     truncated_name, plist[i].cpu_usage, plist[i].mem_usage,
-                     "(Info réseau)"); // Replace with actual network info if
-                                       // available
-            } else {
-              printw("%-6s %-20s %-8s %-8s %-15s\n", "-", "-", "-", "-", "-");
-            }
-
-            break;
-          case 1: // Processus
-            printw("%6d  %s\n", plist[i].pid, plist[i].name);
-            break;
-          case 2: // CPU
-            printw("%6d  CPU: %.2f%%\n", plist[i].pid, plist[i].cpu_usage);
-            break;
-          case 3: // Mémoire
-            printw("%6d  MEM: %.2f%%\n", plist[i].pid, plist[i].mem_usage);
-            break;
-          case 4: // Réseau
-            printw("%6d  (Info réseau)\n", plist[i].pid);
+          case 0: {
+            /* Onglet "Total" : affiche pid, nom tronqué, CPU, MEM et un emplacement pour info réseau */
+            char truncated_name[21];
+            /* On tronque/formatte proprement le nom du processus */
+            snprintf(truncated_name, sizeof(truncated_name), "%-20.20s", plist[i].name);
+            wprintw(listwin, "%-6d %-20s %-8.2f %-8.2f %-15s\n", plist[i].pid, truncated_name, plist[i].cpu_usage, plist[i].mem_usage, "(Info réseau)");
             break;
           }
+          case 1:
+            /* Onglet "Processus" : liste simple pid + nom */
+            wprintw(listwin, "%6d  %s\n", plist[i].pid, plist[i].name);
+            break;
+          case 2:
+            /* Onglet "CPU" : affiche pid et pourcentage CPU */
+            wprintw(listwin, "%6d  CPU: %.2f%%\n", plist[i].pid, plist[i].cpu_usage);
+            break;
+          case 3:
+            /* Onglet "Mémoire" : affiche pid et pourcentage mémoire */
+            wprintw(listwin, "%6d  MEM: %.2f%%\n", plist[i].pid, plist[i].mem_usage);
+            break;
+          case 4:
+            /* Onglet "Réseau" : actuellement placeholder */
+            wprintw(listwin, "%6d  (Info réseau)\n", plist[i].pid);
+            break;
         }
       } else {
-        printw("(no process)\n");
+        /* Si la liste n'existe pas, afficher un message d'erreur simple */
+        wprintw(listwin, "(no process)\n");
       }
 
       if (i == selection) {
-        attroff(A_REVERSE);
+        wattroff(listwin, A_REVERSE);
       }
     }
+    wrefresh(listwin); // envoie le contenu de la 2eme fenetre à l'écran
 
-    //   if (i == selection) {
-    //     attroff(A_REVERSE);
-    //   }
-    // }
-
-    ch = getch();
-
-    /*  les snprintf sont temporaires a remplacer par les fonctions associées
-       : F1 : Afficher l’aide F2 : Passer à l’onglet suivant F3 : Revenir à
-       l’onglet précédent F4 : Rechercher un processus F5 : Mettre un
-       processus en pause F6 : Arrêter un processus F7 : Tuer un processus F8
-       : Redémarrer un processus
-    */
-
+    /* Gestion des touches */
+    ch = getch(); // lecture d'une touche
     switch (ch) {
-    case KEY_F(1):
-      snprintf(key, sizeof(key), "F1 détectée");
-      break;
-    case KEY_F(2):
-      snprintf(key, sizeof(key), "F2 détectée");
-      break;
-    case KEY_F(3):
-      snprintf(key, sizeof(key), "F3 détectée");
-      break;
-    case KEY_F(4):
-      snprintf(key, sizeof(key), "F4 détectée");
-      break;
-    case KEY_F(5):
-      snprintf(key, sizeof(key), "F5 détectée");
-      break;
-    case KEY_F(6):
-      snprintf(key, sizeof(key), "F6 détectée");
-      break;
-    case KEY_F(7):
-      snprintf(key, sizeof(key), "F7 détectée");
-      break;
-    case KEY_F(8):
-      snprintf(key, sizeof(key), "F8 détectée");
-      break;
-    case KEY_UP:
-      if (selection > 0)
-        selection--; // deplacer la selection vers le haut
-      break;
+      case KEY_RESIZE: // detecte le redimensionnement de la fenêtre
+        /* Redemande les dimensions pour que la prochaine boucle réajuste tout */
+        getmaxyx(stdscr, h, w);
+        break;
 
-    case KEY_DOWN:
-      if (selection < count - 1)
-        selection++; // deplacer la selection vers le bas
-      break;
-    case KEY_LEFT:
-      if (tab > 0)
-        tab--; // aller a l'onglet precedent
-      break;
-    case KEY_RIGHT:
-      if (tab < 4) // nombre tab -> onglets max
-        tab++;     // aller a l'onglet suivant
-      break;
-    case 'q':
-    case 'Q':
-      loop = 0;
+      /* Touches de fonctions : on mémorise simplement quelle touche a été pressée (a changer par les actions associées) */
+      case KEY_F(1): snprintf(key, sizeof(key), "F1 détectée"); break;
+      case KEY_F(2): snprintf(key, sizeof(key), "F2 détectée"); break;
+      case KEY_F(3): snprintf(key, sizeof(key), "F3 détectée"); break;
+      case KEY_F(4): snprintf(key, sizeof(key), "F4 détectée"); break;
+      case KEY_F(5): snprintf(key, sizeof(key), "F5 détectée"); break;
+      case KEY_F(6): snprintf(key, sizeof(key), "F6 détectée"); break;
+      case KEY_F(7): snprintf(key, sizeof(key), "F7 détectée"); break;
+      case KEY_F(8): snprintf(key, sizeof(key), "F8 détectée"); break;
+
+      /* Navigation : flèche haut -> sélection monte, gérer scroll si besoin */
+      case KEY_UP:
+        if (selection > 0) {
+          selection--;
+          if (selection < offset) offset--; // décale vers le haut si on sort de la fenêtre 
+        }
+        break;
+
+      /* Flèche bas -> sélection descend, gérer scroll si besoin */
+      case KEY_DOWN:
+        if (selection < count - 1) {
+          selection++;
+          if (selection >= offset + max_lines) offset++; // décale vers le bas si on dépasse 
+        }
+        break;
+
+      /* Changer d'onglet à gauche/droite */
+      case KEY_LEFT:
+        if (tab > 0) tab--;
+        break;
+
+      case KEY_RIGHT:
+        if (tab < 4) tab++;
+        break;
+
+      /* Quitter l'application */
+      case 'q':
+      case 'Q':
+        loop = 0;
     }
-    refresh();
+    refresh(); // assure l'affichage principal mis à jour 
   }
 
-  /* libérer la liste récupérée */
+  /* Nettoyage : libération de la mémoire et fin du mode ncurses */
   free(plist);
+  delwin(listwin);
   endwin();
 }
