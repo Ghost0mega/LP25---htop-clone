@@ -15,14 +15,9 @@ Comportement principal :
 */
 
 
-void ui_loop() {
+void ui_loop(process_info **process_list_ptr, pthread_mutex_t *mutex) {
   int ch; // caractère saisi par getch()
-  process_info *plist = NULL; // tableau des processus
-  int count = get_processes(&plist); // nombre de processus récupérés
-  if (count < 0) { // protection si get_processes a échoué
-    count = 0; 
-  }
-
+  
   /* Etat de l'interface */
   int selection = 0; // index du processus actuellement sélectionné
   int offset = 0; // index du premier processus affiché
@@ -34,6 +29,7 @@ void ui_loop() {
   noecho(); // n'affiche pas les touches saisies 
   cbreak(); // mode cbreak : saisie caractère par caractère 
   keypad(stdscr, TRUE); // active les touches spéciales (flèches, F-keys) 
+  timeout(1000); // Rafraichissement toutes les 1000ms si pas d'input
 
   int h, w; // hauteur et largeur de l'écran
   getmaxyx(stdscr, h, w);
@@ -45,18 +41,18 @@ void ui_loop() {
   int loop = 1; // flag pour controller la boucle principale
 
   while (loop) {
-
-    // A chaque itération on libère l'ancienne liste, on recharge la nouvelle pour garder les informations à jour
-    free(plist);
-    plist = NULL;
-    count = get_processes(&plist);
-    if (count < 0) {
-      count = 0;
+    pthread_mutex_lock(mutex);
+    process_info *plist = *process_list_ptr;
+    size_t count = 0;
+    if (plist) {
+        while (plist[count].pid != 0) {
+            count++;
+        }
     }
 
     /* Protections liées au redimensionnement de la fenetre */
-    if (selection >= count) {
-      selection = (count > 0 ? count - 1 : 0); // si l'index sélection dépasse, on le réduit
+    if (selection >= (int)count) {
+      selection = (count > 0 ? (int)count - 1 : 0); // si l'index sélection dépasse, on le réduit
     }
     if (offset > selection) {
       offset = selection; // l'offset ne doit pas être après la sélection 
@@ -110,7 +106,7 @@ void ui_loop() {
     int max_lines = h - 7; // nombre de lignes disponibles pour la liste 
 
     /* Boucle d'affichage : on parcourt les processus visibles en tenant compte de l'offset */
-    for (int i = offset; i < count && i < offset + max_lines; i++) {
+    for (int i = offset; i < (int)count && i < offset + max_lines; i++) {
       if (i == selection) {
         wattron(listwin, A_REVERSE); // surligne la ligne sélectionnée 
       }
@@ -123,7 +119,7 @@ void ui_loop() {
             char truncated_name[21];
             /* On tronque/formatte proprement le nom du processus */
             snprintf(truncated_name, sizeof(truncated_name), "%-20.20s", plist[i].name);
-            wprintw(listwin, "%-6d %-20s %-8.2f %-8.2f %-15s\n", plist[i].pid, truncated_name, plist[i].cpu_usage, plist[i].mem_usage, "(Info réseau)");
+            wprintw(listwin, "%-6d %-20s %-8.2ld %-8.2ld %-15s\n", plist[i].pid, truncated_name, plist[i].cpu_usage, plist[i].mem_usage, "(Info réseau)");
             break;
           }
           case 1:
@@ -132,11 +128,11 @@ void ui_loop() {
             break;
           case 2:
             /* Onglet "CPU" : affiche pid et pourcentage CPU */
-            wprintw(listwin, "%6d  CPU: %.2f%%\n", plist[i].pid, plist[i].cpu_usage);
+            wprintw(listwin, "%6d  CPU: %ld%%\n", plist[i].pid, plist[i].cpu_usage);
             break;
           case 3:
             /* Onglet "Mémoire" : affiche pid et pourcentage mémoire */
-            wprintw(listwin, "%6d  MEM: %.2f%%\n", plist[i].pid, plist[i].mem_usage);
+            wprintw(listwin, "%6d  MEM: %ld%%\n", plist[i].pid, plist[i].mem_usage);
             break;
           case 4:
             /* Onglet "Réseau" : actuellement placeholder */
@@ -153,6 +149,7 @@ void ui_loop() {
       }
     }
     wrefresh(listwin); // envoie le contenu de la 2eme fenetre à l'écran
+    pthread_mutex_unlock(mutex);
 
     /* Gestion des touches */
     ch = getch(); // lecture d'une touche
@@ -182,7 +179,7 @@ void ui_loop() {
 
       /* Flèche bas -> sélection descend, gérer scroll si besoin */
       case KEY_DOWN:
-        if (selection < count - 1) {
+        if (selection < (int)count - 1) {
           selection++;
           if (selection >= offset + max_lines) offset++; // décale vers le bas si on dépasse 
         }
@@ -206,7 +203,7 @@ void ui_loop() {
   }
 
   /* Nettoyage : libération de la mémoire et fin du mode ncurses */
-  free(plist);
+  // free(plist); // Managed by manager
   delwin(listwin);
   endwin();
 }
