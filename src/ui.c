@@ -119,7 +119,7 @@ void ui_loop(process_info **process_list_ptr, pthread_mutex_t *mutex) {
             char truncated_name[21];
             /* On tronque/formatte proprement le nom du processus */
             snprintf(truncated_name, sizeof(truncated_name), "%-20.20s", plist[i].name);
-            wprintw(listwin, "%-6d %-20s %-8.2ld %-8.2ld %-15s\n", plist[i].pid, truncated_name, plist[i].cpu_usage, plist[i].mem_usage, "(Info réseau)");
+            wprintw(listwin, "%-6d \t %-20s \t %-8.1f%% \t %-8.2ld \t %-15s\n", plist[i].pid, truncated_name, plist[i].cpu_usage, plist[i].mem_usage, "(Info réseau)");
             break;
           }
           case 1:
@@ -128,7 +128,7 @@ void ui_loop(process_info **process_list_ptr, pthread_mutex_t *mutex) {
             break;
           case 2:
             /* Onglet "CPU" : affiche pid et pourcentage CPU */
-            wprintw(listwin, "%6d  CPU: %ld%%\n", plist[i].pid, plist[i].cpu_usage);
+            wprintw(listwin, "%6d  CPU: %.1f%%\n", plist[i].pid, plist[i].cpu_usage);
             break;
           case 3:
             /* Onglet "Mémoire" : affiche pid et pourcentage mémoire */
