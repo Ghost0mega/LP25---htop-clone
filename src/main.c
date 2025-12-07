@@ -1,5 +1,5 @@
 #include "../include/project.h"
-// tewss
+
 int main(void) {
 
   process_info *process_list = NULL;
@@ -10,33 +10,7 @@ int main(void) {
     return 1;
   }
 
-  for (int i = 0; i < 10; i++) {
-    sleep(1);
-
-    pthread_mutex_lock(&mutex);
-    if (process_list == NULL) {
-      printf("process_list is NULL\n");
-      pthread_mutex_unlock(&mutex);
-      continue;
-    }
-
-    printf("process_list[%i].pid = %d\n", i, process_list[i].pid);
-
-    size_t count = 0;
-    while (process_list[count].pid != 0) {
-      count++;
-    }
-    printf("Total processes retrieved: %zu\n", count);
-    print_all_processes(process_list, count);
-    pthread_mutex_unlock(&mutex);
-
-    printf("System information retrieval complete.\n");
-
-    if (i == 5) {
-      printf("#DEBUG Signaled to stop process retrieval thread.\n");
-      break;
-    }
-  }
+  ui_loop(&process_list, &mutex);
 
   manager_stop_process_thread();
 
