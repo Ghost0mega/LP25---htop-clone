@@ -6,18 +6,18 @@ int main(void) {
   pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
   if (manager_start_process_thread(&process_list, &mutex) != 0) {
-      fprintf(stderr, "Failed to start process thread\n");
-      return 1;
+    fprintf(stderr, "Failed to start process thread\n");
+    return 1;
   }
 
   for (int i = 0; i < 10; i++) {
     sleep(1);
-    
+
     pthread_mutex_lock(&mutex);
     if (process_list == NULL) {
-        printf("process_list is NULL\n");
-        pthread_mutex_unlock(&mutex);
-        continue;
+      printf("process_list is NULL\n");
+      pthread_mutex_unlock(&mutex);
+      continue;
     }
 
     printf("process_list[%i].pid = %d\n", i, process_list[i].pid);
@@ -39,8 +39,9 @@ int main(void) {
   }
 
   manager_stop_process_thread();
-  
-  if (process_list) free(process_list);
+
+  if (process_list)
+    free(process_list);
 
   return 0;
 }

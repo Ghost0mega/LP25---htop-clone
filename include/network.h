@@ -4,7 +4,7 @@
 typedef enum connection_type {
     CONN_SSH,
     CONN_TELNET
-} connection_type_t;
+} connection_type;
 
 typedef struct remote_config {
     char name[64];
@@ -12,8 +12,8 @@ typedef struct remote_config {
     int port;
     char username[64];
     char password[64];
-    connection_type_t type;
-} remote_config_t;
+    connection_type type;
+} remote_config;
 
 /* Network API (stub) */
 

@@ -5,38 +5,37 @@
 #include <stdbool.h>
 
 typedef enum {
-    PROCESS_STATE_RUNNING = 'R',
-    PROCESS_STATE_SLEEPING = 'S',
-    PROCESS_STATE_DISK_SLEEP = 'D',
-    PROCESS_STATE_ZOMBIE = 'Z',
-    PROCESS_STATE_STOPPED = 'T',
-    PROCESS_STATE_TRACING_STOP = 't',
-    PROCESS_STATE_DEAD = 'X',
-    PROCESS_STATE_WAKEKILL = 'K',
-    PROCESS_STATE_WAKING = 'W',
-    PROCESS_STATE_PARKED = 'P',
-    PROCESS_STATE_IDLE = 'I',
-    PROCESS_STATE_UNKNOWN = '?'
+  PROCESS_STATE_RUNNING = 'R',
+  PROCESS_STATE_SLEEPING = 'S',
+  PROCESS_STATE_DISK_SLEEP = 'D',
+  PROCESS_STATE_ZOMBIE = 'Z',
+  PROCESS_STATE_STOPPED = 'T',
+  PROCESS_STATE_TRACING_STOP = 't',
+  PROCESS_STATE_DEAD = 'X',
+  PROCESS_STATE_WAKEKILL = 'K',
+  PROCESS_STATE_WAKING = 'W',
+  PROCESS_STATE_PARKED = 'P',
+  PROCESS_STATE_IDLE = 'I',
+  PROCESS_STATE_UNKNOWN = '?'
 } process_state;
 
 typedef struct process_info {
-    int pid;
-    process_state state;
-    char name[256];
-    // char user[64];
-    unsigned long cpu_usage;
-    unsigned long mem_usage;
-    long uptime;
-
-    unsigned long cpu_utime;
-    unsigned long cpu_stime;
-    unsigned long starttime;
+  int pid;
+  process_state state;
+  char name[256];
+  // char user[64];
+  unsigned long cpu_usage;
+  unsigned long mem_usage;
+  long uptime;
+  unsigned long cpu_utime;
+  unsigned long cpu_stime;
+  unsigned long starttime;
 } process_info;
 
 typedef struct {
-    process_info **process_list_ptr;
-    bool *stop_flag_ptr;
-    pthread_mutex_t *mutex;
+  process_info **process_list_ptr;
+  bool *stop_flag_ptr;
+  pthread_mutex_t *mutex;
 } thread_args_t;
 
 /* Getting process information */
@@ -84,7 +83,6 @@ void print_process_info(process_info *info);
  */
 void print_all_processes(process_info *processes, size_t count);
 
-
 /* Process handling API (stub) */
 
 /**
@@ -104,8 +102,16 @@ int *get_all_pids(void *arg);
 
 /**
  * Get information about all processes in the system.
- * @return Pointer to an array of process_info structs (must be freed by caller).
+ * @return Pointer to an array of process_info structs (must be freed by
+ * caller).
  */
 void *get_all_processes(void *args);
+
+/* Récupère les processus en cours d'exécution sur le système (/proc).
+Alloue un tableau d'informations sur les processus (process_info) qui doit être
+libéré par l'appelant avec free(). Renvoie le nombre d'entrées en cas de succès,
+ou -1 en cas d'erreur.
+ */
+int get_processes(process_info **out_list);
 
 #endif /* PROCESS_H */

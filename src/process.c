@@ -1,4 +1,7 @@
 #include "../include/project.h"
+#include <ctype.h>
+#include <dirent.h>
+#include <string.h>
 
 /**
  * Get the number of clock ticks per second.
@@ -210,51 +213,54 @@ void *get_all_processes(void *arg) {
   bool *stop_flag = args->stop_flag_ptr;
   pthread_mutex_t *mutex = args->mutex;
 
-   while (!(*stop_flag)) {
-     size_t count = 0;
-     int *pid_list = get_all_pids(NULL);
-     if (pid_list == NULL) {
-       return NULL;
-     }
+  while (!(*stop_flag)) {
+    size_t count = 0;
+    int *pid_list = get_all_pids(NULL);
+    if (pid_list == NULL) {
+      return NULL;
+    }
 
     while (pid_list[count] != 0) {
-       count++;
-     }
+      count++;
+    }
 
-     process_info *process_list = calloc(count + 1, sizeof(process_info));
-     if (process_list == NULL) {
-       free(pid_list);
-       return NULL;
-     }
-     
-     for (size_t i = 0; i < count; i++) {
-       if (pid_list[i] != 0) {
-         get_process_info(pid_list[i], &process_list[i]);
-       }
-     }
-     /* terminateur */
-     process_list[count].pid = 0;
+    process_info *process_list = calloc(count + 1, sizeof(process_info));
+    if (process_list == NULL) {
+      free(pid_list);
+      return NULL;
+    }
 
-     /* publier la nouvelle liste et libérer l'ancienne */
-     
-     if (mutex) pthread_mutex_lock(mutex);
-     if (*process_list_ptr != NULL) {
-       free(*process_list_ptr);
-     }
-     *process_list_ptr = process_list;
-     if (mutex) pthread_mutex_unlock(mutex);
-     
+    for (size_t i = 0; i < count; i++) {
+      if (pid_list[i] != 0) {
+        get_process_info(pid_list[i], &process_list[i]);
+      }
+    }
+    /* terminateur */
+    process_list[count].pid = 0;
 
-     sleep(1);
-     free(pid_list);
-   }
-   
-   /* libérer la dernière liste avant de quitter */
-   if (mutex) pthread_mutex_lock(mutex);
-   if (*process_list_ptr != NULL) {
-     free(*process_list_ptr);
-     *process_list_ptr = NULL;
-   }
-   if (mutex) pthread_mutex_unlock(mutex);
-   return NULL;
- }
+    /* publier la nouvelle liste et libérer l'ancienne */
+
+    if (mutex)
+      pthread_mutex_lock(mutex);
+    if (*process_list_ptr != NULL) {
+      free(*process_list_ptr);
+    }
+    *process_list_ptr = process_list;
+    if (mutex)
+      pthread_mutex_unlock(mutex);
+
+    sleep(1);
+    free(pid_list);
+  }
+
+  /* libérer la dernière liste avant de quitter */
+  if (mutex)
+    pthread_mutex_lock(mutex);
+  if (*process_list_ptr != NULL) {
+    free(*process_list_ptr);
+    *process_list_ptr = NULL;
+  }
+  if (mutex)
+    pthread_mutex_unlock(mutex);
+  return NULL;
+}
