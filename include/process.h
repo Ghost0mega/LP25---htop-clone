@@ -24,7 +24,7 @@ typedef struct process_info {
   process_state state;
   char name[256];
   // char user[64];
-  unsigned long cpu_usage;
+  float cpu_usage;
   unsigned long mem_usage;
   long uptime;
   unsigned long cpu_utime;

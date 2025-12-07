@@ -69,7 +69,7 @@ int get_number_of_cpus(void) { return sysconf(_SC_NPROCESSORS_ONLN); }
  */
 int get_page_size(void) { return sysconf(_SC_PAGESIZE); }
 void print_process_info(process_info *info) {
-  printf("PID: %d \t| Name: %s \t| State: %c \t| CPU Usage: %lu \t| Memory "
+  printf("PID: %d \t| Name: %s \t| State: %c \t| CPU Usage: %.1f%% \t| Memory "
          "Usage: %lu \t| Uptime: %ld seconds\n",
          info->pid, info->name, (char)info->state, info->cpu_usage,
          info->mem_usage, info->uptime);
@@ -145,6 +145,7 @@ int get_process_info(int pid, process_info *info) {
   } else {
     info->mem_usage = 0;
   }
+  info->cpu_usage = info->cpu_utime + info->cpu_stime;
 
   info->uptime =
       get_system_uptime() - (info->starttime / get_clock_ticks_per_second());
@@ -206,12 +207,34 @@ int *get_all_pids(void *arg) {
   return pid_list;
 }
 
+unsigned long long get_total_system_cpu_time(void) {
+  FILE *fp = fopen("/proc/stat", "r");
+  if (!fp)
+    return 0;
+  char buf[1024];
+  if (!fgets(buf, sizeof(buf), fp)) {
+    fclose(fp);
+    return 0;
+  }
+  fclose(fp);
+
+  unsigned long long user, nice, system, idle, iowait, irq, softirq, steal;
+  if (sscanf(buf, "cpu  %llu %llu %llu %llu %llu %llu %llu %llu", &user,
+             &nice, &system, &idle, &iowait, &irq, &softirq, &steal) < 8) {
+    return 0;
+  }
+  return user + nice + system + idle + iowait + irq + softirq + steal;
+}
+
 void *get_all_processes(void *arg) {
   thread_args_t *args = (thread_args_t *)arg;
 
   process_info **process_list_ptr = args->process_list_ptr;
   bool *stop_flag = args->stop_flag_ptr;
   pthread_mutex_t *mutex = args->mutex;
+
+  process_info *prev_list = NULL;
+  unsigned long long prev_system_time = 0;
 
   while (!(*stop_flag)) {
     size_t count = 0;
@@ -230,9 +253,31 @@ void *get_all_processes(void *arg) {
       return NULL;
     }
 
+    unsigned long long current_system_time = get_total_system_cpu_time();
+
     for (size_t i = 0; i < count; i++) {
       if (pid_list[i] != 0) {
         get_process_info(pid_list[i], &process_list[i]);
+        
+        // Calculate CPU usage
+        if (prev_list && prev_system_time > 0) {
+            // Find process in prev_list
+            // Simple linear search for now
+            size_t j = 0;
+            while (prev_list[j].pid != 0) {
+                if (prev_list[j].pid == process_list[i].pid) {
+                    unsigned long long proc_time = process_list[i].cpu_utime + process_list[i].cpu_stime;
+                    unsigned long long prev_proc_time = prev_list[j].cpu_utime + prev_list[j].cpu_stime;
+                    unsigned long long system_delta = current_system_time - prev_system_time;
+                    
+                    if (system_delta > 0) {
+                        process_list[i].cpu_usage = (float)(proc_time - prev_proc_time) / system_delta * 100.0 * get_number_of_cpus();
+                    }
+                    break;
+                }
+                j++;
+            }
+        }
       }
     }
     /* terminateur */
@@ -248,6 +293,9 @@ void *get_all_processes(void *arg) {
     *process_list_ptr = process_list;
     if (mutex)
       pthread_mutex_unlock(mutex);
+
+    prev_list = process_list; // Keep reference for next iteration (NOTE: *process_list_ptr owns it, but we know it won't be freed until we do it next loop)
+    prev_system_time = current_system_time;
 
     sleep(1);
     free(pid_list);
