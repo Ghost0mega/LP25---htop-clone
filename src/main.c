@@ -1,19 +1,21 @@
 #include "../include/project.h"
 
 int main(void) {
-    /* initialize subsystems */
-    config_load(NULL);
-    manager_init();
-    process_init();
-    machine_init();
-    network_init();
-    ui_init();
 
-    printf("Hello, World! (from project layout)\n");
+  process_info *process_list = NULL;
+  pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-    /* shutdown */
-    ui_shutdown();
-    manager_shutdown();
+  if (manager_start_process_thread(&process_list, &mutex) != 0) {
+    fprintf(stderr, "Failed to start process thread\n");
+    return 1;
+  }
 
-    return 0;
+  ui_loop(&process_list, &mutex);
+
+  manager_stop_process_thread();
+
+  if (process_list)
+    free(process_list);
+
+  return 0;
 }

@@ -1,7 +1,7 @@
 CC := gcc
 CFLAGS := -std=c11 -Iinclude -Wall -Wextra -O2 -g
 # libs go here 
-LDFLAGS :=
+LDFLAGS := -lncurses -ltinfo
 
 SRCDIR := src
 BUILDDIR := build
@@ -16,7 +16,7 @@ OBJS := $(patsubst $(SRCDIR)/%.c,$(BUILDDIR)/%.o,$(SRCS))
 all: $(BINDIR)/$(TARGET)
 
 $(BINDIR)/$(TARGET): $(OBJS) | $(BINDIR)
-	$(CC) $(LDFLAGS) -o $@ $(OBJS)
+	$(CC) -o $@ $(OBJS) $(LDFLAGS)
 
 $(BUILDDIR)/%.o: $(SRCDIR)/%.c | $(BUILDDIR)
 	$(CC) $(CFLAGS) -c -o $@ $<
