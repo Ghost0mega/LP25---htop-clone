@@ -15,6 +15,7 @@ Comportement principal :
 */
 
 
+
 void ui_loop(process_info **process_list_ptr, pthread_mutex_t *mutex) {
   int ch; // caractère saisi par getch()
   
@@ -115,11 +116,40 @@ void ui_loop(process_info **process_list_ptr, pthread_mutex_t *mutex) {
         /* Affichage différent selon l'onglet actif */
         switch (tab) {
           case 0: {
+            if (plist == NULL || plist[i].pid == 0 || plist[i].name == NULL) break;
             /* Onglet "Total" : affiche pid, nom tronqué, CPU, MEM et un emplacement pour info réseau */
+            char state_char = (char)plist[i].state;
             char truncated_name[21];
+            char ram_usage_str[16];
+            char uptime_str[16];
             /* On tronque/formatte proprement le nom du processus */
             snprintf(truncated_name, sizeof(truncated_name), "%-20.20s", plist[i].name);
-            wprintw(listwin, "%-6d \t %-20s \t %-8.1f%% \t %-8.2ld \t %-15s\n", plist[i].pid, truncated_name, plist[i].cpu_usage, plist[i].mem_usage, "(Info réseau)");
+            /* On formate l'usage mémoire en Ko/Mo/Go */
+            if (plist[i].mem_usage < 1024) {
+              snprintf(ram_usage_str, sizeof(ram_usage_str), "%lu B", plist[i].mem_usage);
+            } else if (plist[i].mem_usage < 1024 * 1024) {
+              snprintf(ram_usage_str, sizeof(ram_usage_str), "%.2f KB", plist[i].mem_usage / 1024.0);
+            } else if (plist[i].mem_usage < 1024 * 1024 * 1024) {
+              snprintf(ram_usage_str, sizeof(ram_usage_str), "%.2f MB", plist[i].mem_usage / (1024.0 * 1024.0));
+            } else {
+              snprintf(ram_usage_str, sizeof(ram_usage_str), "%.2f GB", plist[i].mem_usage / (1024.0 * 1024.0 * 1024.0));
+            }
+            /* On formate le uptime en secondes/minutes/heures */
+            long uptime = plist[i].uptime;
+            if (uptime < 60) {
+              snprintf(uptime_str, sizeof(uptime_str), "%ld s", uptime);
+            } else if (uptime < 3600) {
+              snprintf(uptime_str, sizeof(uptime_str), "%ld:%02ld", uptime / 60, uptime % 60);
+            } else {
+              long hours = uptime / 3600;
+              long minutes = (uptime % 3600) / 60;
+              long seconds = uptime % 60;
+              snprintf(uptime_str, sizeof(uptime_str), "%ld:%02ld:%02ld", hours, minutes, seconds);
+            }
+            /* Affichage final de la ligne */
+            wprintw(listwin, "%6d \t%-20s \t%c \t%6.2f%% \t%8s \t%7s \t(net-info)\n",
+                    plist[i].pid, truncated_name, state_char,
+                    plist[i].cpu_usage, ram_usage_str, uptime_str);
             break;
           }
           case 1:
