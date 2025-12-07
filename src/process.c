@@ -204,13 +204,11 @@ int *get_all_pids(void *arg) {
 }
 
 void *get_all_processes(void *arg) {
-  struct thread_args {
-    process_info **process_list_ptr;
-    bool *stop_flag_ptr;
-  } *args = arg;
+  thread_args_t *args = (thread_args_t *)arg;
 
   process_info **process_list_ptr = args->process_list_ptr;
   bool *stop_flag = args->stop_flag_ptr;
+  pthread_mutex_t *mutex = args->mutex;
 
    while (!(*stop_flag)) {
      size_t count = 0;
@@ -239,10 +237,12 @@ void *get_all_processes(void *arg) {
 
      /* publier la nouvelle liste et libérer l'ancienne */
      
+     if (mutex) pthread_mutex_lock(mutex);
      if (*process_list_ptr != NULL) {
        free(*process_list_ptr);
      }
      *process_list_ptr = process_list;
+     if (mutex) pthread_mutex_unlock(mutex);
      
 
      sleep(1);
@@ -250,9 +250,11 @@ void *get_all_processes(void *arg) {
    }
    
    /* libérer la dernière liste avant de quitter */
+   if (mutex) pthread_mutex_lock(mutex);
    if (*process_list_ptr != NULL) {
      free(*process_list_ptr);
      *process_list_ptr = NULL;
    }
+   if (mutex) pthread_mutex_unlock(mutex);
    return NULL;
  }

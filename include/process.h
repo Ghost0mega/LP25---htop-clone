@@ -1,6 +1,9 @@
 #ifndef PROCESS_H
 #define PROCESS_H
 
+#include <pthread.h>
+#include <stdbool.h>
+
 typedef enum {
     PROCESS_STATE_RUNNING = 'R',
     PROCESS_STATE_SLEEPING = 'S',
@@ -29,6 +32,12 @@ typedef struct process_info {
     unsigned long cpu_stime;
     unsigned long starttime;
 } process_info;
+
+typedef struct {
+    process_info **process_list_ptr;
+    bool *stop_flag_ptr;
+    pthread_mutex_t *mutex;
+} thread_args_t;
 
 /* Getting process information */
 
