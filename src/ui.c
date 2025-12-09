@@ -23,7 +23,7 @@ void ui_loop(process_info **process_list_ptr, pthread_mutex_t *mutex) {
   int selection = 0; // index du processus actuellement sélectionné
   int offset = 0; // index du premier processus affiché
   int tab = 0; // onglet courant dans le menu
-  char key[128] = ""; // message texte récapitulant la dernière touche F détectée
+  char key[512] = ""; // message texte récapitulant la dernière touche F détectée
 
   /* Initialisation de ncurses */
   initscr(); // démarre le mode ncurses 
@@ -36,7 +36,7 @@ void ui_loop(process_info **process_list_ptr, pthread_mutex_t *mutex) {
   getmaxyx(stdscr, h, w);
 
   /* Fenêtre secondaire pour la liste qui permet de manipuler le contenu indépendamment */
-  WINDOW *listwin = newwin(h - 5, w, 5, 0); // hauteur = h-5, largeur = w, position y = 5 
+  WINDOW *listwin = newwin(h - 11, w, 11, 0); // hauteur = h-11, largeur = w, position y = 5 
   scrollok(listwin, FALSE); // on gère manuellement le scrolling des éléments via la variable offset donc on désactive le scrolling automatique
 
   int loop = 1; // flag pour controller la boucle principale
@@ -65,12 +65,12 @@ void ui_loop(process_info **process_list_ptr, pthread_mutex_t *mutex) {
     /* Ajustement de la fenêtre en cas de redimensionnement de la fenetre */
     getmaxyx(stdscr, h, w);
     if (listwin) {
-      int new_h = h - 5; // conserver la même logique de placement qu'avant
+      int new_h = h - 11; // conserver la même logique de placement qu'avant
       if (new_h < 1) {
         new_h = 1; // s'assurer d'une hauteur minimale
       }
       wresize(listwin, new_h, w); // redimensionne la fenetre
-      mvwin(listwin, 5, 0); // repositionne la fenetre 
+      mvwin(listwin, 11, 0); // repositionne la fenetre 
       wclear(listwin); // efface les anciens contenus
     }
 
@@ -78,8 +78,8 @@ void ui_loop(process_info **process_list_ptr, pthread_mutex_t *mutex) {
     clear();
 
     /* Ligne de status : indications pour l'utilisateur */
-    printw("Appuyez sur F1..F8 (q pour quitter) | Tab: %d | Selection: %d\n", tab, selection);
-    printw("Key: %s\n", key); /* affiche la dernière touche F détectée */
+    printw("Appuyez sur q pour quitter et F1 pour l'aide | Tab: %d | Selection: %d\n", tab, selection);
+    printw("%s\n", key); /* affiche la dernière touche F détectée */
     printw("Onglets: ");
 
     /* Affichage des onglets (Total, Processus, CPU, Mémoire, Réseau)
@@ -104,7 +104,7 @@ void ui_loop(process_info **process_list_ptr, pthread_mutex_t *mutex) {
 
     /* Affichage des processus avec le scrolling */
     wclear(listwin);
-    int max_lines = h - 7; // nombre de lignes disponibles pour la liste 
+    int max_lines = h - 13; // nombre de lignes disponibles pour la liste 
 
     /* Boucle d'affichage : on parcourt les processus visibles en tenant compte de l'offset */
     for (int i = offset; i < (int)count && i < offset + max_lines; i++) {
@@ -190,14 +190,26 @@ void ui_loop(process_info **process_list_ptr, pthread_mutex_t *mutex) {
         break;
 
       /* Touches de fonctions : on mémorise simplement quelle touche a été pressée (a changer par les actions associées) */
-      case KEY_F(1): snprintf(key, sizeof(key), "F1 détectée"); break;
-      case KEY_F(2): snprintf(key, sizeof(key), "F2 détectée"); break;
-      case KEY_F(3): snprintf(key, sizeof(key), "F3 détectée"); break;
-      case KEY_F(4): snprintf(key, sizeof(key), "F4 détectée"); break;
-      case KEY_F(5): snprintf(key, sizeof(key), "F5 détectée"); break;
-      case KEY_F(6): snprintf(key, sizeof(key), "F6 détectée"); break;
-      case KEY_F(7): snprintf(key, sizeof(key), "F7 détectée"); break;
-      case KEY_F(8): snprintf(key, sizeof(key), "F8 détectée"); break;
+      case KEY_F(1): snprintf(key, sizeof(key), 
+      "Aide :\n"
+      "F2 : Passer à longlet suivant\n"
+      "F3 : Revenir à longlet précédent\n"
+      "F4 : Rechercher un processus\n"
+      "F5 : Mettre un processus en pause\n"
+      "F6 : Arrêter un processus\n"
+      "F7 : Tuer un processus\n"
+      "F8 : Redémarrer un processus\n"); break;
+      
+      case KEY_F(2): snprintf(key, sizeof(key), "\n""\n""\n""\n""\n""\n""\n""\n"); if (tab > 0) tab--; break;
+      
+      case KEY_F(3): snprintf(key, sizeof(key), "\n""\n""\n""\n""\n""\n""\n""\n"); if (tab < 4) tab++; break;
+      
+      case KEY_F(4): snprintf(key, sizeof(key), "Rechercher un processus"); break;
+      
+      case KEY_F(5): snprintf(key, sizeof(key), "Arrêter un processus"); break;
+      case KEY_F(6): snprintf(key, sizeof(key), "Arrêter un processus"); break;
+      case KEY_F(7): snprintf(key, sizeof(key), "Tuer un processus"); break;
+      case KEY_F(8): snprintf(key, sizeof(key), "Redémarrer un processus"); break;
 
       /* Navigation : flèche haut -> sélection monte, gérer scroll si besoin */
       case KEY_UP:
@@ -213,15 +225,6 @@ void ui_loop(process_info **process_list_ptr, pthread_mutex_t *mutex) {
           selection++;
           if (selection >= offset + max_lines) offset++; // décale vers le bas si on dépasse 
         }
-        break;
-
-      /* Changer d'onglet à gauche/droite */
-      case KEY_LEFT:
-        if (tab > 0) tab--;
-        break;
-
-      case KEY_RIGHT:
-        if (tab < 4) tab++;
         break;
 
       /* Quitter l'application */
