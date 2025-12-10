@@ -40,6 +40,8 @@ void ui_loop(process_info **process_list_ptr, pthread_mutex_t *mutex) {
   scrollok(listwin, FALSE); // on gère manuellement le scrolling des éléments via la variable offset donc on désactive le scrolling automatique
 
   int loop = 1; // flag pour controller la boucle principale
+  int space_value = 5; // espace entre les colonnes dans l'affichage
+
 
   while (loop) {
     pthread_mutex_lock(mutex);
@@ -65,12 +67,12 @@ void ui_loop(process_info **process_list_ptr, pthread_mutex_t *mutex) {
     /* Ajustement de la fenêtre en cas de redimensionnement de la fenetre */
     getmaxyx(stdscr, h, w);
     if (listwin) {
-      int new_h = h - 11; // conserver la même logique de placement qu'avant
+      int new_h = h - space_value; // conserver la même logique de placement qu'avant
       if (new_h < 1) {
         new_h = 1; // s'assurer d'une hauteur minimale
       }
       wresize(listwin, new_h, w); // redimensionne la fenetre
-      mvwin(listwin, 11, 0); // repositionne la fenetre 
+      mvwin(listwin, space_value, 0); // repositionne la fenetre 
       wclear(listwin); // efface les anciens contenus
     }
 
@@ -104,7 +106,7 @@ void ui_loop(process_info **process_list_ptr, pthread_mutex_t *mutex) {
 
     /* Affichage des processus avec le scrolling */
     wclear(listwin);
-    int max_lines = h - 13; // nombre de lignes disponibles pour la liste 
+    int max_lines = h - space_value; // nombre de lignes disponibles pour la liste 
 
     /* Boucle d'affichage : on parcourt les processus visibles en tenant compte de l'offset */
     for (int i = offset; i < (int)count && i < offset + max_lines; i++) {
@@ -190,26 +192,25 @@ void ui_loop(process_info **process_list_ptr, pthread_mutex_t *mutex) {
         break;
 
       /* Touches de fonctions : on mémorise simplement quelle touche a été pressée (a changer par les actions associées) */
-      case KEY_F(1): snprintf(key, sizeof(key), 
-      "Aide :\n"
-      "F2 : Passer à longlet suivant\n"
-      "F3 : Revenir à longlet précédent\n"
-      "F4 : Rechercher un processus\n"
-      "F5 : Mettre un processus en pause\n"
-      "F6 : Arrêter un processus\n"
-      "F7 : Tuer un processus\n"
-      "F8 : Redémarrer un processus\n"); break;
-      
-      case KEY_F(2): snprintf(key, sizeof(key), "\n""\n""\n""\n""\n""\n""\n""\n"); if (tab > 0) tab--; break;
-      
-      case KEY_F(3): snprintf(key, sizeof(key), "\n""\n""\n""\n""\n""\n""\n""\n"); if (tab < 4) tab++; break;
-      
-      case KEY_F(4): snprintf(key, sizeof(key), "Rechercher un processus"); break;
-      
-      case KEY_F(5): snprintf(key, sizeof(key), "Arrêter un processus"); break;
-      case KEY_F(6): snprintf(key, sizeof(key), "Arrêter un processus"); break;
-      case KEY_F(7): snprintf(key, sizeof(key), "Tuer un processus"); break;
-      case KEY_F(8): snprintf(key, sizeof(key), "Redémarrer un processus"); break;
+      case KEY_F(1):
+        space_value = 11;
+        snprintf(key, sizeof(key), 
+        "Aide :\n"
+        "F2 : Passer à longlet suivant\n"
+        "F3 : Revenir à longlet précédent\n"
+        "F4 : Rechercher un processus\n"
+        "F5 : Mettre un processus en pause\n"
+        "F6 : Arrêter un processus\n"
+        "F7 : Tuer un processus\n"
+        "F8 : Redémarrer un processus\n"); 
+        break;
+      case KEY_F(2): space_value = 5; snprintf(key, sizeof(key), "");if (tab > 0) tab--; break; // aller a gauche dans les onglets
+      case KEY_F(3): space_value = 5; snprintf(key, sizeof(key), ""); if (tab < 4) tab++; break; // aller a droite dans les onglets
+      case KEY_F(4): space_value = 5; snprintf(key, sizeof(key), "Rechercher un processus"); break;
+      case KEY_F(5): space_value = 5; snprintf(key, sizeof(key), "Arrêter un processus"); break;
+      case KEY_F(6): space_value = 5; snprintf(key, sizeof(key), "Arrêter un processus"); break;
+      case KEY_F(7): space_value = 5; snprintf(key, sizeof(key), "Tuer un processus"); break;
+      case KEY_F(8): space_value = 5; snprintf(key, sizeof(key), "Redémarrer un processus"); break;
 
       /* Navigation : flèche haut -> sélection monte, gérer scroll si besoin */
       case KEY_UP:
