@@ -15,6 +15,6 @@ aussi ca serait cool de bien commenter comme ca le rendu sera plus propre (les l
 ### A faire
 
 - rendre l'ui plus beau
-- les configs et les args en ligne de commande
+- les configs et les args en ligne de commande > en rapport avec la partie réseaux
 - le distant (ssh ou telnet)
 - fix les bugs
