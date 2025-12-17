@@ -56,32 +56,28 @@ bool params_validate(parameters_table *params, int params_count) {
             case PARAM_LOGIN:
                 //Tested only if the program isn't for a local use:
                 if (!local_mode) {
-                    //The parameters isn't correct if the value is null:
-                    if (!check_non_empty(param->parameter_value.str_param)) return false;
+                    //fill with the conditions
                 }
                 break;
                         
             case PARAM_REMOTE_SERVER:
                 //Tested only if the program isn't for a local use:
                 if (!local_mode) {
-                    //The parameters isn't correct if the value is null:
-                    if (!check_non_empty(param->parameter_value.str_param)) return false;
+                    //fill with the conditions
                 }
                 break;
 
             case PARAM_USERNAME:
                 //Tested only if the program isn't for a local use:
                 if (!local_mode) {
-                    //The parameters isn't correct if the value is null:
-                    if (!check_non_empty(param->parameter_value.str_param)) return false;
+                    //fill with the conditions
                 }
                 break;
                 
             case PARAM_PASSWORD:
                 //Tested only if the program isn't for a local use:
                 if (!local_mode) {
-                    //The parameters isn't correct if the value is null:
-                    if (!check_non_empty(param->parameter_value.str_param)) return false;
+                    //fill with the conditions
                 }
                 break;
             }
