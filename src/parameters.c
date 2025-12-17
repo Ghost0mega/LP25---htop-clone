@@ -72,7 +72,7 @@ void manual() {
     printf(COLOR_BOLD "SYNOPSIS\n" COLOR_OFF "\t[OPTIONS] arguments...\n\n");
     printf(COLOR_BOLD "DESCRIPTION\n" COLOR_OFF "\tShow all the process in an interactive table in real time.\n\n");
     printf(COLOR_BOLD "OPTION\n" COLOR_OFF);
-    printf("\t-h --help\tPrint the manual in ther terminal.\n");
+    printf("\t-h --help\tPrint the manual in the terminal.\n");
     printf("\t-d --dry-run\tTest access to the list of processes on the local and/or remote machine without displaying them.\n");
     printf("\t-c --remote-config\tSpecifies the path to the configuration file containing the connection information on remote machines.\n");
     printf("\t-t --connexion-type\tSpecifies the type of connection to use for connection on remote machines (ssh, telnet).\n");
