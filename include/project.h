@@ -12,6 +12,9 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <getopt.h>
+#include <stdbool.h>
+#include <string.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -22,6 +25,7 @@
 #include "network.h"
 #include "process.h"
 #include "ui.h"
+#include "parameters.h"
 #include "utils.h"
 
 #endif /* PROJECT_H */
