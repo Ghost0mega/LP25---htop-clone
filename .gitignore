@@ -55,4 +55,4 @@ dkms.conf
 *.dwo
 
 #bin
-/bin/
+./bin/
