@@ -5,66 +5,95 @@
 ==========*/
 
 bool params_validate(parameters_table *params, int params_count) {
+    //Initialisation:
+    bool local_mode;
+
+    //Verifying if we are in local mode:
+    for (int i = 0; i < params_count; i++) {
+        if (params[i].parameter_type == PARAM_CONNEXION_TYPE && strcmp(params[i].parameter_value.str_param, "local") != 0) {
+            local_mode = false;
+            break;
+        }
+    }
+
     //Validation foreach parameters which takes values:
     for (int i=0; i<params_count; i++) {
-        //Current parameter:
+        //Current parameter: (equivalent to the foreach in other languages)
         parameters_table *param = &params[i];
 
         //Rules for each type of parameters:
         switch(param->parameter_type) {
+            default:
+                break;
+
             case PARAM_REMOTE_CONFIG:
-                //The parameters isn't correct if the value is null:
+                //The parameters isn't valid if it is null, or the user cannot acess the given path.
                 if (strlen(param->parameter_value.str_param) == 0) {
                     return false;
+                } else {
+                    if (access(param->parameter_value.str_param, R_OK) != 0) {
+                        fprintf(stderr,"ERREUR: Impossible d'accéder au fihcier de configuration réseau.\n");
+                        return false;
+                    }
                 }
                 break;
 
-                case PARAM_CONNEXION_TYPE:
-                    //The parameters isn't correct if the value is null:
-                    if (strlen(param->parameter_value.str_param) == 0) {
+            case PARAM_PORT:
+                //Tested only if the program isn't for a local use:
+                if (!local_mode) {
+                    //The parameters isn't correct if the value is less than 1024 or bigger than 65535:
+                    if ((param->parameter_value.int_param < 1024) || (param->parameter_value.int_param > 65535)) {
+                        fprintf(stderr,"ERREUR: Le port doit être dans compris entre 1024 et 65535.\n");
                         return false;
+                    } else {
+                        //We verify that the port is free:
+                        if(!is_port_free(param->parameter_value.int_param)) return false;
+                        fprintf(stderr,"ERREUR: Le port sélectionner est déjà utilisé.\n");
                     }
-                    break;
+                }
+                break;
 
-                case PARAM_PORT:
+            case PARAM_LOGIN:
+                //Tested only if the program isn't for a local use:
+                if (!local_mode) {
                     //The parameters isn't correct if the value is null:
-                    if (param->parameter_value.int_param == 0) {
-                        return false;
-                    }
-                    break;
-
-                case PARAM_LOGIN:
-                    //The parameters isn't correct if the value is null:
-                    if (strlen(param->parameter_value.str_param) == 0) {
-                        return false;
-                    }
-                    break;
+                    if (!check_non_empty(param->parameter_value.str_param)) return false;
+                }
+                break;
                         
-                case PARAM_REMOTE_SERVER:
+            case PARAM_REMOTE_SERVER:
+                //Tested only if the program isn't for a local use:
+                if (!local_mode) {
                     //The parameters isn't correct if the value is null:
-                    if (strlen(param->parameter_value.str_param) == 0) {
-                        return false;
-                    }
-                    break;
+                    if (!check_non_empty(param->parameter_value.str_param)) return false;
+                }
+                break;
 
-                case PARAM_USERNAME:
+            case PARAM_USERNAME:
+                //Tested only if the program isn't for a local use:
+                if (!local_mode) {
                     //The parameters isn't correct if the value is null:
-                    if (strlen(param->parameter_value.str_param) == 0) {
-                        return false;
-                    }
-                    break;
+                    if (!check_non_empty(param->parameter_value.str_param)) return false;
+                }
+                break;
                 
-                case PARAM_PASSWORD:
+            case PARAM_PASSWORD:
+                //Tested only if the program isn't for a local use:
+                if (!local_mode) {
                     //The parameters isn't correct if the value is null:
-                    if (strlen(param->parameter_value.str_param) == 0) {
-                        return false;
-                    }
-                    break;
+                    if (!check_non_empty(param->parameter_value.str_param)) return false;
+                }
+                break;
             }
         }
 
     //If nothing goes wrong we return true:
     return true;
+}
+
+bool is_port_free(int port) {
+    //à remplir avec les besoin reseaux, quand on sera là
+    return false;
 }
 
 void manual() {

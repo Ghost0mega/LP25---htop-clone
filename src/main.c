@@ -8,9 +8,9 @@ int main(int argc, char *argv[]) {
     parameters_table default_parameters[] = { //Default parameters.
         {.parameter_type = PARAM_HELP, .parameter_value.flag_param = false},
         {.parameter_type = PARAM_DRY_RUN, .parameter_value.flag_param = false},
-        {.parameter_type = PARAM_REMOTE_CONFIG, .parameter_value.str_param = ""}, // /!\: Reste à définir un chemin par défaut pour la configuration réseau
+        {.parameter_type = PARAM_REMOTE_CONFIG, .parameter_value.str_param = "./config/remote.txt"}, // /!\: Reste à définir un chemin par défaut pour la configuration réseau
         {.parameter_type = PARAM_CONNEXION_TYPE, .parameter_value.str_param = "local"}, //By default the programm run on the local machine.
-        {.parameter_type = PARAM_PORT, .parameter_value.int_param = -1}, // /!\: Reste à définir un port local.
+        {.parameter_type = PARAM_PORT, .parameter_value.int_param = 0}, // /!\: Reste à définir un port local.
         {.parameter_type = PARAM_LOGIN, .parameter_value.str_param = ""}, // /!\: Reste à définir un login par défaut.
         {.parameter_type = PARAM_REMOTE_SERVER, .parameter_value.str_param = "localhost"}, // /!\: Reste à définir un serveur par défaut.
         {.parameter_type = PARAM_USERNAME, .parameter_value.str_param = ""},
@@ -111,6 +111,6 @@ int main(int argc, char *argv[]) {
     }
 
     //Validate the final parameters:
-    //if (!params_validate(given_parameters, parameters_count)) return EXIT_FAILURE;
+    if (!params_validate(given_parameters, parameters_count)) return EXIT_FAILURE;
     return EXIT_SUCCESS;
 }

@@ -1,6 +1,7 @@
 #ifndef PARAMETERS_H
 #define PARAMETERS_H
 #include <stdbool.h>
+#include <unistd.h>
 
 #define STR_MAX 1024
 #define COLOR_BOLD  "\e[1m"
@@ -43,6 +44,11 @@ typedef struct {
  *  Return true if the given parameters are valid.
  */
 bool params_validate(parameters_table *params, int params_count);
+
+/**
+ * Return true if the given port is free to use.
+ */
+bool is_port_free(int port);
 
 /**
  * Print the manual in the terminal.
