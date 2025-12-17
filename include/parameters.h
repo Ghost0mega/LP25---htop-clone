@@ -4,6 +4,7 @@
 #include <unistd.h>
 
 #define STR_MAX 1024
+#define PARAMETER_BUFFER_SIZE 16
 #define COLOR_BOLD  "\e[1m"
 #define COLOR_OFF   "\e[m"
 
@@ -39,6 +40,11 @@ typedef struct {
 /*=========
 * METHODS: *
 ==========*/
+
+/**
+ * Manage the given arguments of the programm.
+ */
+int manage_arguments(int argc, char *argv[]);
 
 /**
  *  Return true if the given parameters are valid.
