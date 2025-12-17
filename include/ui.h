@@ -1,16 +1,11 @@
 #ifndef UI_H
 #define UI_H
 
-/* UI API (stub) */
+#include <ncurses.h>
+#include "process.h"
+#include <pthread.h>
 
-int ui_init(void);
-void ui_draw(void);
-void ui_shutdown(void);
+// Main ui loop
+void ui_loop(process_info **process_list, pthread_mutex_t *lock);
 
-#endif /* UI_H */
-#ifndef UI_H
-#define UI_H
-
-void ui_init(void);
-
-#endif /* UI_H */
+#endif // UI_H
