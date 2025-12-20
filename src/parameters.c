@@ -104,7 +104,7 @@ int manage_arguments(int argc, char *argv[]) {
                 break;
 
             case '?':
-                printf("Invalid Arguments\n");
+                fprintf(stderr,"ERROR: Invalid Arguments\n");
                 break;
 
             default:
@@ -136,7 +136,6 @@ bool params_validate(parameters_table *params, int params_count) {
         //Current parameter: (equivalent to the foreach in other languages)
         parameters_table *param = &params[i];
 
-        printf("%d\n",i);
         //Rules for each type of parameters:
         switch(param->parameter_type) {
             default:

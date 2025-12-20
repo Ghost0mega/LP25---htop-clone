@@ -6,19 +6,17 @@ int main(int argc, char *argv[]) {
 
     int arg_return = manage_arguments(argc, argv);
     switch (arg_return) {
-        default:
-            break;
-        
-        //error case.
         case 1:
             return EXIT_FAILURE;
             break;
-        
-        //--help, so no error but we stop the program.
         case 2:
             return EXIT_SUCCESS;
             break;
+        default:
+            break;
     }
+    
+    //if (arg_return != 0) return EXIT_FAILURE;
 
     process_info *process_list = NULL;
     pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
