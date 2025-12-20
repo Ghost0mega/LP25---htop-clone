@@ -1,6 +1,10 @@
 #ifndef NETWORK_H
 #define NETWORK_H
 
+/*=========
+*  TYPES:  *
+==========*/
+
 typedef enum connection_type {
     CONN_SSH,
     CONN_TELNET
@@ -16,6 +20,15 @@ typedef struct remote_config {
 } remote_config;
 
 /* Network API (stub) */
+
+/*=========
+* METHODS: *
+==========*/
+
+/**
+ * Return true if the given port is free to use.
+ */
+bool is_port_free(int port);
 
 int network_init(void);
 void network_poll(void);

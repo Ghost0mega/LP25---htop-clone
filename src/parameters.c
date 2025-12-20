@@ -204,11 +204,6 @@ bool params_validate(parameters_table *params, int params_count) {
     return true;
 }
 
-bool is_port_free(int port) {
-    //à remplir avec les besoin reseaux, quand on sera là
-    return false;
-}
-
 void manual() {
     printf(COLOR_BOLD "NOM\n" COLOR_OFF "\thtop-clone - interactive process viewer\n\n");
     printf(COLOR_BOLD "SYNOPSIS\n" COLOR_OFF "\t[OPTIONS] arguments...\n\n");

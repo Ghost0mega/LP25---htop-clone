@@ -52,11 +52,6 @@ int manage_arguments(int argc, char *argv[]);
 bool params_validate(parameters_table *params, int params_count);
 
 /**
- * Return true if the given port is free to use.
- */
-bool is_port_free(int port);
-
-/**
  * Print the manual in the terminal.
  */
 void manual();
