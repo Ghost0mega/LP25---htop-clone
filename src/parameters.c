@@ -152,7 +152,7 @@ bool params_validate(parameters_table *params, int params_count) {
                         return false;
                     }
                     if (!is_config_file_valid(param->parameter_value.str_param)) {
-                        fprintf(stderr,"ERROR: Follow this format for the configuration file:\nserver_name1:server_adress:port:username:password:connection_type1\nserver_name2:server_adress:port:username:password:connection_type2\n")
+                        fprintf(stderr,"ERROR: Follow this format for the configuration file:\nserver_name1:server_adress:port:username:password:connection_type1\nserver_name2:server_adress:port:username:password:connection_type2\n");
                     }
                 }
                 break;
@@ -180,7 +180,6 @@ bool params_validate(parameters_table *params, int params_count) {
                     //fill with the conditions
                 }
                 break;
-                        [STR_MAX]
             case PARAM_REMOTE_SERVER:
                 //Tested only if the program isn't for a local use:
                 if (!local_mode) {
