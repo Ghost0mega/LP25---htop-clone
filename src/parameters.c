@@ -46,7 +46,7 @@ int manage_arguments(int argc, char *argv[]) {
                 given_parameters[parameters_count].parameter_value.flag_param = true;
                 parameters_count++;
                 manual();
-                return 1;
+                return 2;
                 break;
             
             case 1:
@@ -145,12 +145,14 @@ bool params_validate(parameters_table *params, int params_count) {
             case PARAM_REMOTE_CONFIG:
                 //The parameters isn't valid if it is null, or the user cannot acess the given path.
                 if (strlen(param->parameter_value.str_param) == 0) {
-                    printf("C\n");
                     return false;
                 } else {
                     if (access(param->parameter_value.str_param, R_OK) != 0) {
-                        fprintf(stderr,"ERREUR: Impossible d'accéder au fihcier de configuration réseau.\n");
+                        fprintf(stderr,"ERROR: Cannot access the configuration file.\n");
                         return false;
+                    }
+                    if (!is_config_file_valid(param->parameter_value.str_param)) {
+                        fprintf(stderr,"ERROR: Follow this format for the configuration file:\nserver_name1:server_adress:port:username:password:connection_type1\nserver_name2:server_adress:port:username:password:connection_type2\n")
                     }
                 }
                 break;
@@ -160,12 +162,14 @@ bool params_validate(parameters_table *params, int params_count) {
                 if (!local_mode) {
                     //The parameters isn't correct if the value is less than 1024 or bigger than 65535:
                     if ((param->parameter_value.int_param < 1024) || (param->parameter_value.int_param > 65535)) {
-                        fprintf(stderr,"ERREUR: Le port doit être dans compris entre 1024 et 65535.\n");
+                        fprintf(stderr,"ERROR: Please enter a port value between 1024 and 65535.\n");
                         return false;
                     } else {
                         //We verify that the port is free:
-                        if(!is_port_free(param->parameter_value.int_param)) return false;
-                        fprintf(stderr,"ERREUR: Le port sélectionner est déjà utilisé.\n");
+                        if(!is_port_free(param->parameter_value.int_param)) {
+                            fprintf(stderr,"ERROR: The selected port is alrezdy used.\n");
+                            return false;
+                        }
                     }
                 }
                 break;
@@ -176,7 +180,7 @@ bool params_validate(parameters_table *params, int params_count) {
                     //fill with the conditions
                 }
                 break;
-                        
+                        [STR_MAX]
             case PARAM_REMOTE_SERVER:
                 //Tested only if the program isn't for a local use:
                 if (!local_mode) {

@@ -9,6 +9,10 @@ bool is_port_free(int port) {
     return false;
 }
 
+bool is_config_file_valid(char path[STR_MAX]) {
+    return false;
+}
+
 int network_init(void) {
     printf("network: init\n");
     return 0;

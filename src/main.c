@@ -5,8 +5,19 @@
 int main(int argc, char *argv[]) {
 
     int arg_return = manage_arguments(argc, argv);
-    if (arg_return != 0) {
-        return arg_return;
+    switch (arg_return) {
+        default:
+            break;
+        
+        //error case.
+        case 1:
+            return EXIT_FAILURE;
+            break;
+        
+        //--help, so no error but we stop the program.
+        case 2:
+            return EXIT_SUCCESS;
+            break;
     }
 
     process_info *process_list = NULL;

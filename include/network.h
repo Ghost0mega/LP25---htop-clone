@@ -1,6 +1,8 @@
 #ifndef NETWORK_H
 #define NETWORK_H
 
+#define STR_MAX 1024
+
 /*=========
 *  TYPES:  *
 ==========*/
@@ -29,6 +31,13 @@ typedef struct remote_config {
  * Return true if the given port is free to use.
  */
 bool is_port_free(int port);
+
+/**
+ * Return true if the given file match this schema:
+ * server_name1:server_adress:port:username:password:connection_type1
+ * server_name2:server_adress:port:username:password:connection_type2
+ */
+bool is_config_file_valid(char path[STR_MAX]);
 
 int network_init(void);
 void network_poll(void);
