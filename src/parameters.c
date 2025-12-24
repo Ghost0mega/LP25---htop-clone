@@ -10,7 +10,7 @@ int manage_arguments(int argc, char *argv[]) {
     parameters_table default_parameters[] = { //Default parameters.
         {.parameter_type = PARAM_HELP, .parameter_value.flag_param = false},
         {.parameter_type = PARAM_DRY_RUN, .parameter_value.flag_param = false},
-        {.parameter_type = PARAM_REMOTE_CONFIG, .parameter_value.str_param = "./config/remote.txt"}, // /!\: Reste à définir un chemin par défaut pour la configuration réseau
+        {.parameter_type = PARAM_REMOTE_CONFIG, .parameter_value.str_param = "./.config"}, //If there is no parameter by default we seek the file .config in the current directory.
         {.parameter_type = PARAM_CONNEXION_TYPE, .parameter_value.str_param = "local"}, //By default the programm run on the local machine.
         {.parameter_type = PARAM_PORT, .parameter_value.int_param = 0}, // /!\: Reste à définir un port local.
         {.parameter_type = PARAM_LOGIN, .parameter_value.str_param = ""}, // /!\: Reste à définir un login par défaut.
@@ -108,7 +108,6 @@ int manage_arguments(int argc, char *argv[]) {
                 break;
 
             default:
-                printf("Local mode\n");
                 break;
         }
     }
@@ -122,6 +121,7 @@ int manage_arguments(int argc, char *argv[]) {
 bool params_validate(parameters_table *params, int params_count) {
     //Initialization:
     bool local_mode = true;
+    bool has_config_file = false;
 
     //Verifying if we are in local mode:
     for (int i = 0; i < params_count; i++) {
@@ -152,13 +152,15 @@ bool params_validate(parameters_table *params, int params_count) {
                     }
                     if (!is_config_file_valid(param->parameter_value.str_param)) {
                         fprintf(stderr,"ERROR: Follow this format for the configuration file:\nserver_name1:server_adress:port:username:password:connection_type1\nserver_name2:server_adress:port:username:password:connection_type2\n");
+                        return false;
                     }
                 }
+                has_config_file = true;
                 break;
 
             case PARAM_PORT:
                 //Tested only if the program isn't for a local use:
-                if (!local_mode) {
+                if (!local_mode && !has_config_file) {
                     //The parameters isn't correct if the value is less than 1024 or bigger than 65535:
                     if ((param->parameter_value.int_param < 1024) || (param->parameter_value.int_param > 65535)) {
                         fprintf(stderr,"ERROR: Please enter a port value between 1024 and 65535.\n");
@@ -175,27 +177,27 @@ bool params_validate(parameters_table *params, int params_count) {
 
             case PARAM_LOGIN:
                 //Tested only if the program isn't for a local use:
-                if (!local_mode) {
+                if (!local_mode && !has_config_file) {
                     //fill with the conditions
                 }
                 break;
             case PARAM_REMOTE_SERVER:
                 //Tested only if the program isn't for a local use:
-                if (!local_mode) {
+                if (!local_mode && !has_config_file) {
                     //fill with the conditions
                 }
                 break;
 
             case PARAM_USERNAME:
                 //Tested only if the program isn't for a local use:
-                if (!local_mode) {
+                if (!local_mode && !has_config_file) {
                     //fill with the conditions
                 }
                 break;
                 
             case PARAM_PASSWORD:
                 //Tested only if the program isn't for a local use:
-                if (!local_mode) {
+                if (!local_mode && !has_config_file) {
                     //fill with the conditions
                 }
                 break;
