@@ -2,6 +2,7 @@
 #define PARAMETERS_H
 #include <stdbool.h>
 #include <unistd.h>
+#include <ctype.h>
 
 #define STR_MAX 1024
 #define PARAMETER_BUFFER_SIZE 16
@@ -55,5 +56,10 @@ bool params_validate(parameters_table *params, int params_count);
  * Print the manual in the terminal.
  */
 void manual();
+
+/**
+ * strupr for linux
+ */
+char *strupper(char *s);
 
 #endif /* PARAMETERS_H */

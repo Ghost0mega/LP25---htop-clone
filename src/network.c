@@ -10,7 +10,25 @@ bool is_port_free(int port) {
 }
 
 bool is_config_file_valid(char path[STR_MAX]) {
-    return false;
+    //Initialization:
+    FILE *fptr;
+    fptr = fopen(path, 'r');
+
+    //First we test if we can access to the file:
+    if (fptr == NULL) {
+        fprintf(stderr,"ERROR: Cannot access the configuration file.\n");
+        return false;
+    }
+
+    /*
+    FILL HERE
+    */
+
+    //Once all is done we close the file:
+    fclose(fptr);
+
+    //If nothing goes wrong we send true:
+    return true;
 }
 
 int network_init(void) {
