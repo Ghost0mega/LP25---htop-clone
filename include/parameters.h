@@ -63,6 +63,29 @@ bool params_validate(parameters_table *params, int params_count);
 bool is_param_type(parameters_table *params, int params_count, parameters_id_table type);
 
 /**
+ * Get the value of the parameters of the given type.
+ * 
+ * @param params Table of parameters.
+ * @param params_cpunt Number of elements in the table.
+ * @param type The type want to get the value.
+ * @param string Return string.
+ * 
+ * @return 0 success - 1 fail
+ */
+int get_string_parameters(parameters_table *params, int params_count, parameters_id_table type, char *string);
+
+/**
+ * Get the value of the parameters of the given type.
+ * 
+ * @param params Table of parameters.
+ * @param params_cpunt Number of elements in the table.
+ * @param type The type want to get the value.
+ * 
+ * @return int
+ */
+int get_int_parameters(parameters_table *params, int params_count, parameters_id_table type);
+
+/**
  * Print the manual in the terminal.
  */
 void manual();

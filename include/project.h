@@ -19,6 +19,9 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <stdarg.h>
+#include <arpa/inet.h>
+#include <errno.h>
+#include <sys/socket.h>
 
 #include "config.h"
 #include "machine.h"

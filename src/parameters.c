@@ -220,12 +220,12 @@ bool params_validate(parameters_table *params, int params_count) {
     return true;
 }
 
-bool is_param_type(parameters_table *params, int params_count, parameters_id_table type_to_check) {
+bool is_param_type(parameters_table *params, int params_count, parameters_id_table type) {
     //Initialization:
     bool found = false;
 
     for (int i = 0; i < params_count; i++) {
-        if (params[i].parameter_type == type_to_check) {
+        if (params[i].parameter_type == type) {
             found = true;
             break;
         }
@@ -234,6 +234,24 @@ bool is_param_type(parameters_table *params, int params_count, parameters_id_tab
     return found;
 }
 
+int get_int_parameters(parameters_table *params, int params_count, parameters_id_table type) {
+    for (int i = 0; i < params_count; i++) {
+        if (params[i].parameter_type == type) {
+            return params[i].parameter_value.int_param;
+        }
+    }
+    return -1;
+}
+
+int get_string_parameters(parameters_table *params, int params_count, parameters_id_table type, char *string) {
+    for (int i = 0; i < params_count; i++) {
+        if (params[i].parameter_type == type) {
+            strcpy(string, params[i].parameter_value.str_param);
+            return 0;
+        }
+    }
+    return 1;
+}
 
 void manual() {
     printf(COLOR_BOLD "NOM\n" COLOR_OFF "\thtop-clone - interactive process viewer\n\n");
