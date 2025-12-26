@@ -1,33 +1,27 @@
 #include "../include/project.h"
 
 int main(int argc, char *argv[]) {
+    //Initialization:
+    int params_count;
 
-    int arg_return = manage_arguments(argc, argv);
-    switch (arg_return) {
-        case 1:
-            return EXIT_FAILURE;
-            break;
-        case 2:
-            return EXIT_SUCCESS;
-            break;
-        default:
-            break;
+    //Get all the arguments:
+    parameters_table *params = manage_arguments(argc, argv, &params_count);
+    if (!params) return EXIT_FAILURE;
+
+    //Case of --help or -h:
+    if (is_param_type(params, params_count, PARAM_HELP)) {
+        free(params);
+        manual();
+        return EXIT_SUCCESS;
+    }
+    
+    //dry run local case:
+    if (is_param_type(params, params_count, PARAM_DRY_RUN)) {
+        free(params);
+        return dry_run();
     }
 
-    process_info *process_list = NULL;
-    pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-
-    if (manager_start_process_thread(&process_list, &mutex) != 0) {
-        fprintf(stderr, "ERROR: Failed to start process thread\n");
-        return EXIT_FAILURE;
-    }
-
-    ui_loop(&process_list, &mutex);
-
-    manager_stop_process_thread();
-
-    if (process_list)
-        free(process_list);
-
-    return EXIT_SUCCESS;
+    //Normal local run:
+    free(params);
+    return ui_and_process_loop();
 }

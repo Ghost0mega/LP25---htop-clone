@@ -1,8 +1,6 @@
 #ifndef PARAMETERS_H
 #define PARAMETERS_H
-#include <stdbool.h>
-#include <unistd.h>
-#include <ctype.h>
+#include "../include/project.h"
 
 #define STR_MAX 1024
 #define PARAMETER_BUFFER_SIZE 16
@@ -44,22 +42,30 @@ typedef struct {
 
 /**
  * Manage the given arguments of the programm.
+ * @param argc Number of arguments in the command line.
+ * @param argv Arguments of the command line.
+ * @param out_count Final count of parameters.
  */
-int manage_arguments(int argc, char *argv[]);
+parameters_table *manage_arguments(int argc, char *argv[], int *out_count);
 
 /**
- *  Return true if the given parameters are valid.
+ * Return true if the given parameters are valid.
+ * @param params Table of parameters.
+ * @param params_count Number of element in the table.
  */
 bool params_validate(parameters_table *params, int params_count);
+
+/**
+ * Return true if there is the given arguments.
+ * @param params Table of parameters.
+ * @param params_count Number of element in the table.
+ * @param type The type that we want to test.
+ */
+bool is_param_type(parameters_table *params, int params_count, parameters_id_table type);
 
 /**
  * Print the manual in the terminal.
  */
 void manual();
-
-/**
- * strupr for linux
- */
-char *strupper(char *s);
 
 #endif /* PARAMETERS_H */

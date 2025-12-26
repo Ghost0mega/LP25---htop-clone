@@ -4,22 +4,17 @@
 * METHODS: *
 ==========*/
 
-int manage_arguments(int argc, char *argv[]) {
-    //Control of the parameters:
-    parameters_table given_parameters[PARAMETER_BUFFER_SIZE]; //parameters received by the user.
-    parameters_table default_parameters[] = { //Default parameters.
-        {.parameter_type = PARAM_HELP, .parameter_value.flag_param = false},
-        {.parameter_type = PARAM_DRY_RUN, .parameter_value.flag_param = false},
-        {.parameter_type = PARAM_REMOTE_CONFIG, .parameter_value.str_param = "./.config"}, //If there is no parameter by default we seek the file .config in the current directory.
-        {.parameter_type = PARAM_CONNEXION_TYPE, .parameter_value.str_param = "local"}, //By default the programm run on the local machine.
-        {.parameter_type = PARAM_PORT, .parameter_value.int_param = 0}, // /!\: Reste à définir un port local.
-        {.parameter_type = PARAM_LOGIN, .parameter_value.str_param = ""}, // /!\: Reste à définir un login par défaut.
-        {.parameter_type = PARAM_REMOTE_SERVER, .parameter_value.str_param = "localhost"}, // /!\: Reste à définir un serveur par défaut.
-        {.parameter_type = PARAM_USERNAME, .parameter_value.str_param = ""},
-        {.parameter_type = PARAM_PASSWORD, .parameter_value.str_param = ""},
-        {.parameter_type = PARAM_ALL, .parameter_value.flag_param = false},
-    };
-    int parameters_count = 0, default_parameters_count = sizeof(default_parameters) / sizeof(parameters_table), opt = 0;
+parameters_table *manage_arguments(int argc, char *argv[], int *out_count) {
+    //Initialization:
+    int parameters_count=0;
+    int opt;
+
+    //Verfying the output:
+    if (!out_count) return NULL;
+
+    //Creat the empty table:
+    parameters_table *given_parameters = calloc(PARAMETER_BUFFER_SIZE, sizeof(parameters_table));
+    if (!given_parameters) return NULL;
 
     //Define the accpeted arguments:
     struct option my_opts[] = {
@@ -37,18 +32,21 @@ int manage_arguments(int argc, char *argv[]) {
     };
 
     //Do the modification of the arguments:
-    while((opt = getopt_long(argc, argv, "hdc:t:P:l:s:u:p:a", my_opts, NULL)) != -1) {
-        switch (opt){
+    while ((opt = getopt_long(argc, argv, "hdc:t:P:l:s:u:p:a", my_opts, NULL)) != -1) {
 
-            //Return the manual of the programm:
+        if (parameters_count >= PARAMETER_BUFFER_SIZE) {
+            fprintf(stderr, "ERROR: Too many parameters\n");
+            free(given_parameters);
+            return NULL;
+        }
+
+        switch (opt) {
             case 'h':
                 given_parameters[parameters_count].parameter_type = PARAM_HELP;
                 given_parameters[parameters_count].parameter_value.flag_param = true;
                 parameters_count++;
-                manual();
-                return 2;
                 break;
-            
+        
             case 1:
                 given_parameters[parameters_count].parameter_type = PARAM_DRY_RUN;
                 given_parameters[parameters_count].parameter_value.flag_param = true;
@@ -57,13 +55,15 @@ int manage_arguments(int argc, char *argv[]) {
 
             case 'c':
                 given_parameters[parameters_count].parameter_type = PARAM_REMOTE_CONFIG;
-                strcpy(given_parameters[parameters_count].parameter_value.str_param, optarg);
+                strncpy(given_parameters[parameters_count].parameter_value.str_param, optarg, STR_MAX-1);
+                given_parameters[parameters_count].parameter_value.str_param[STR_MAX-1] = '\0';
                 parameters_count++;
                 break;
 
             case 't':
                 given_parameters[parameters_count].parameter_type = PARAM_CONNEXION_TYPE;
-                strcpy(given_parameters[parameters_count].parameter_value.str_param, optarg);
+                strncpy(given_parameters[parameters_count].parameter_value.str_param, optarg, STR_MAX-1);
+                given_parameters[parameters_count].parameter_value.str_param[STR_MAX-1] = '\0';
                 parameters_count++;
                 break;
 
@@ -75,25 +75,29 @@ int manage_arguments(int argc, char *argv[]) {
 
             case 'l':
                 given_parameters[parameters_count].parameter_type = PARAM_LOGIN;
-                strcpy(given_parameters[parameters_count].parameter_value.str_param, optarg);
+                strncpy(given_parameters[parameters_count].parameter_value.str_param, optarg, STR_MAX-1);
+                given_parameters[parameters_count].parameter_value.str_param[STR_MAX-1] = '\0';
                 parameters_count++;
                 break;
 
             case 's':
                 given_parameters[parameters_count].parameter_type = PARAM_REMOTE_SERVER;
-                strcpy(given_parameters[parameters_count].parameter_value.str_param, optarg);
+                strncpy(given_parameters[parameters_count].parameter_value.str_param, optarg, STR_MAX-1);
+                given_parameters[parameters_count].parameter_value.str_param[STR_MAX-1] = '\0';
                 parameters_count++;
                 break;
 
             case 'u':
                 given_parameters[parameters_count].parameter_type = PARAM_USERNAME;
-                strcpy(given_parameters[parameters_count].parameter_value.str_param, optarg);
+                strncpy(given_parameters[parameters_count].parameter_value.str_param, optarg, STR_MAX-1);
+                given_parameters[parameters_count].parameter_value.str_param[STR_MAX-1] = '\0';
                 parameters_count++;
                 break;
 
             case 'p':
                 given_parameters[parameters_count].parameter_type = PARAM_PASSWORD;
-                strcpy(given_parameters[parameters_count].parameter_value.str_param, optarg);
+                strncpy(given_parameters[parameters_count].parameter_value.str_param, optarg, STR_MAX-1);
+                given_parameters[parameters_count].parameter_value.str_param[STR_MAX-1] = '\0';
                 parameters_count++;
                 break;
 
@@ -108,14 +112,20 @@ int manage_arguments(int argc, char *argv[]) {
                 break;
 
             default:
+                fprintf(stderr, "ERROR: Invalid argument\n");
+                free(given_parameters);
+                return NULL;
                 break;
         }
     }
 
-    //Validate the final parameters:
-    if (!params_validate(given_parameters, parameters_count)) return EXIT_FAILURE;
+    if (!params_validate(given_parameters, parameters_count)) {
+        free(given_parameters);
+        return NULL;
+    }
 
-    return 0;
+    *out_count = parameters_count;
+    return given_parameters;
 }
 
 bool params_validate(parameters_table *params, int params_count) {
@@ -142,20 +152,22 @@ bool params_validate(parameters_table *params, int params_count) {
                 break;
 
             case PARAM_REMOTE_CONFIG:
-                //The parameters isn't valid if it is null, or the user cannot acess the given path.
-                if (strlen(param->parameter_value.str_param) == 0) {
-                    return false;
-                } else {
-                    if (access(param->parameter_value.str_param, R_OK) != 0) {
-                        fprintf(stderr,"ERROR: Cannot access the configuration file.\n");
+                if (!local_mode) {
+                    //The parameters isn't valid if it is null, or the user cannot acess the given path.
+                    if (strlen(param->parameter_value.str_param) == 0) {
                         return false;
+                    } else {
+                        if (access(param->parameter_value.str_param, R_OK) != 0) {
+                            fprintf(stderr,"ERROR: Cannot access the configuration file.\n");
+                            return false;
+                        }
+                        if (!is_config_file_valid(param->parameter_value.str_param)) {
+                            fprintf(stderr,"ERROR: Follow this format for the configuration file:\nserver_name1:server_adress:port:username:password:connection_type1\nserver_name2:server_adress:port:username:password:connection_type2\n");
+                            return false;
+                        }
                     }
-                    if (!is_config_file_valid(param->parameter_value.str_param)) {
-                        fprintf(stderr,"ERROR: Follow this format for the configuration file:\nserver_name1:server_adress:port:username:password:connection_type1\nserver_name2:server_adress:port:username:password:connection_type2\n");
-                        return false;
-                    }
+                    has_config_file = true;
                 }
-                has_config_file = true;
                 break;
 
             case PARAM_PORT:
@@ -206,6 +218,23 @@ bool params_validate(parameters_table *params, int params_count) {
 
     //If nothing goes wrong we return true:
     return true;
+}
+
+bool is_param_type(parameters_table *params, int params_count, parameters_id_table type) {
+    //Initialization:
+    bool dry_run = false;
+
+    for (int i=0; i<params_count; i++) {
+        //Current parameter: (equivalent to the foreach in other languages)
+        parameters_table *param = &params[i];
+
+        if (param->parameter_type == type) {
+            dry_run = true;
+            break;
+        }
+    }
+
+    return dry_run;
 }
 
 void manual() {

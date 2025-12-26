@@ -1,7 +1,4 @@
 #include "../include/project.h"
-#include <pthread.h>
-#include <stdbool.h>
-#include <stdlib.h>
 
 static pthread_t proc_thread;
 static bool proc_stop_flag = false;
@@ -32,4 +29,41 @@ void manager_stop_process_thread(void) {
         free(proc_args);
         proc_args = NULL;
     }
+}
+
+int ui_and_process_loop() {
+    process_info *process_list = NULL;
+    pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+    if (manager_start_process_thread(&process_list, &mutex) != 0) {
+        fprintf(stderr, "ERROR: Failed to start process thread\n");
+        return EXIT_FAILURE;
+    }
+
+    ui_loop(&process_list, &mutex);
+
+    manager_stop_process_thread();
+
+    if (process_list) free(process_list);
+    
+    return EXIT_SUCCESS;
+}
+
+int dry_run() {
+    //Initialization:
+    process_info *process_list = NULL;
+    pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+
+    if (manager_start_process_thread(&process_list, &mutex) != 0) {
+        fprintf(stderr, "ERROR: (DRY-UN) Failed to start process thread\n");
+        return EXIT_FAILURE;
+    }
+
+    manager_stop_process_thread();
+
+    if (process_list) free(process_list);
+
+    fprintf(stdout,"DRY-RUN: Nothing's wrong.\n");
+    return EXIT_SUCCESS;
 }

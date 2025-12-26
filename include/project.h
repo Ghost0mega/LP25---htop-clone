@@ -17,6 +17,8 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <ctype.h>
+#include <stdarg.h>
 
 #include "config.h"
 #include "machine.h"
