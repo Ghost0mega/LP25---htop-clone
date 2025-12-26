@@ -220,22 +220,20 @@ bool params_validate(parameters_table *params, int params_count) {
     return true;
 }
 
-bool is_param_type(parameters_table *params, int params_count, parameters_id_table type) {
+bool is_param_type(parameters_table *params, int params_count, parameters_id_table type_to_check) {
     //Initialization:
-    bool dry_run = false;
+    bool found = false;
 
-    for (int i=0; i<params_count; i++) {
-        //Current parameter: (equivalent to the foreach in other languages)
-        parameters_table *param = &params[i];
-
-        if (param->parameter_type == type) {
-            dry_run = true;
+    for (int i = 0; i < params_count; i++) {
+        if (params[i].parameter_type == type_to_check) {
+            found = true;
             break;
         }
     }
 
-    return dry_run;
+    return found;
 }
+
 
 void manual() {
     printf(COLOR_BOLD "NOM\n" COLOR_OFF "\thtop-clone - interactive process viewer\n\n");

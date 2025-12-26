@@ -24,7 +24,6 @@ typedef enum {
     PARAM_ALL, //Specify the programm to collect the process from the local and distant machines.
 } parameters_id_table;
 
-
 typedef union {
 	int int_param; //Used for port
 	bool flag_param; //Used for help, dry-run and all
