@@ -14,6 +14,25 @@ int manager_start_process_thread(process_info **process_list_ptr, pthread_mutex_
     proc_args->process_list_ptr = process_list_ptr;
     proc_args->stop_flag_ptr = &proc_stop_flag;
     proc_args->mutex = mutex;
+    proc_args->include_remote = false;  /* Default: no remote processes */
+
+    if (pthread_create(&proc_thread, NULL, get_all_processes, proc_args) != 0) {
+        free(proc_args);
+        return -1;
+    }
+    return 0;
+}
+
+int manager_start_process_thread_with_remote(process_info **process_list_ptr, pthread_mutex_t *mutex) {
+    proc_stop_flag = false;
+    proc_args = malloc(sizeof(thread_args_t));
+    if (!proc_args) {
+        return -1;
+    }
+    proc_args->process_list_ptr = process_list_ptr;
+    proc_args->stop_flag_ptr = &proc_stop_flag;
+    proc_args->mutex = mutex;
+    proc_args->include_remote = true;  /* Include remote processes */
 
     if (pthread_create(&proc_thread, NULL, get_all_processes, proc_args) != 0) {
         free(proc_args);
@@ -35,7 +54,15 @@ int ui_and_process_loop() {
     process_info *process_list = NULL;
     pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-    if (manager_start_process_thread(&process_list, &mutex) != 0) {
+    /* Start process thread with or without remote processes */
+    int ret;
+    if (g_remote_configs_count > 0) {
+        ret = manager_start_process_thread_with_remote(&process_list, &mutex);
+    } else {
+        ret = manager_start_process_thread(&process_list, &mutex);
+    }
+    
+    if (ret != 0) {
         fprintf(stderr, "ERROR: Failed to start process thread\n");
         return EXIT_FAILURE;
     }
@@ -49,14 +76,16 @@ int ui_and_process_loop() {
     return EXIT_SUCCESS;
 }
 
-int dry_run() {
+int dry_run(parameters_table *parameters, int params_count) {
     //Initialization:
     process_info *process_list = NULL;
     pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
+    fprintf(stdout, "DRY-RUN: Testing access to processes...\n");
 
+    //Test local process access:
     if (manager_start_process_thread(&process_list, &mutex) != 0) {
-        fprintf(stderr, "ERROR: (DRY-UN) Failed to start process thread\n");
+        fprintf(stderr, "ERROR: (DRY-RUN) Failed to start process thread\n");
         return EXIT_FAILURE;
     }
 
@@ -64,6 +93,17 @@ int dry_run() {
 
     if (process_list) free(process_list);
 
-    fprintf(stdout,"DRY-RUN: Nothing's wrong.\n");
+    //Test remote access if remote options were provided:
+    if (is_param_type(parameters, params_count, PARAM_REMOTE_CONFIG) ||
+        is_param_type(parameters, params_count, PARAM_REMOTE_SERVER) ||
+        is_param_type(parameters, params_count, PARAM_LOGIN)) {
+        fprintf(stdout, "DRY-RUN: Testing remote server connection...\n");
+        if (network_init(parameters, params_count) != 0) {
+            fprintf(stderr, "ERROR: (DRY-RUN) Failed to test remote connection.\n");
+            return EXIT_FAILURE;
+        }
+    }
+
+    fprintf(stdout, "DRY-RUN: All tests passed successfully.\n");
     return EXIT_SUCCESS;
 }

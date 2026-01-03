@@ -36,6 +36,7 @@ typedef struct {
   process_info **process_list_ptr;
   bool *stop_flag_ptr;
   pthread_mutex_t *mutex;
+  bool include_remote;  /* Include remote processes in the list */
 } thread_args_t;
 
 /* Getting process information */

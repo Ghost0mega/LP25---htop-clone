@@ -167,7 +167,7 @@ int *get_all_pids(void *arg) {
   }
 
   /* skip header line if any */
-  fgets(buffer, sizeof(buffer), fp);
+  fgets(buffer, sizeof(buffer), fp); /* skip header */
 
   int *pid_list = malloc(1000 * sizeof(int));
   if (pid_list == NULL) {
@@ -232,6 +232,7 @@ void *get_all_processes(void *arg) {
   process_info **process_list_ptr = args->process_list_ptr;
   bool *stop_flag = args->stop_flag_ptr;
   pthread_mutex_t *mutex = args->mutex;
+  bool include_remote = args->include_remote;
 
   process_info *prev_list = NULL;
   unsigned long long prev_system_time = 0;
@@ -282,6 +283,16 @@ void *get_all_processes(void *arg) {
     }
     /* terminateur */
     process_list[count].pid = 0;
+
+    /* Ajouter les processus distants si demandé */
+    if (include_remote) {
+        int total_count = network_poll_all_processes(&process_list, count);
+        if (total_count > (int)count) {
+            /* Mark end of list */
+            process_list[total_count].pid = 0;
+            count = total_count;
+        }
+    }
 
     /* publier la nouvelle liste et libérer l'ancienne */
 

@@ -30,7 +30,11 @@ typedef union {
 	char str_param[STR_MAX];
 } data_wrapper_table;
 
-typedef struct {
+/* Structure représentant un paramètre passé en ligne de commande.
+ * `parameter_type` identifie le type (enum `parameters_id_table`).
+ * `parameter_value` contient la valeur (int, flag ou chaîne) selon le type.
+ */
+typedef struct parameters_table {
     parameters_id_table parameter_type;
     data_wrapper_table parameter_value;
 } parameters_table;

@@ -132,12 +132,36 @@ bool params_validate(parameters_table *params, int params_count) {
     //Initialization:
     bool local_mode = true;
     bool has_config_file = false;
+    bool has_login = false;
+    bool has_remote_server = false;
+    bool has_all_flag = false;
 
     //Verifying if we are in local mode:
     for (int i = 0; i < params_count; i++) {
         if (params[i].parameter_type == PARAM_CONNEXION_TYPE && strcmp(params[i].parameter_value.str_param, "local") != 0) {
             local_mode = false;
             break;
+        }
+    }
+
+    //Check for -a flag and ensure it's used with -c or -s:
+    for (int i = 0; i < params_count; i++) {
+        if (params[i].parameter_type == PARAM_ALL) {
+            has_all_flag = true;
+            break;
+        }
+    }
+    if (has_all_flag) {
+        bool has_config_or_server = false;
+        for (int i = 0; i < params_count; i++) {
+            if (params[i].parameter_type == PARAM_REMOTE_CONFIG || params[i].parameter_type == PARAM_REMOTE_SERVER) {
+                has_config_or_server = true;
+                break;
+            }
+        }
+        if (!has_config_or_server) {
+            fprintf(stderr, "ERROR: Option -a/--all requires -c/--remote-config or -s/--remote-server.\n");
+            return false;
         }
     }
 
@@ -180,7 +204,7 @@ bool params_validate(parameters_table *params, int params_count) {
                     } else {
                         //We verify that the port is free:
                         if(!is_port_free(param->parameter_value.int_param)) {
-                            fprintf(stderr,"ERROR: The selected port is alrezdy used.\n");
+                            fprintf(stderr,"ERROR: The selected port is already used.\n");
                             return false;
                         }
                     }
@@ -190,27 +214,61 @@ bool params_validate(parameters_table *params, int params_count) {
             case PARAM_LOGIN:
                 //Tested only if the program isn't for a local use:
                 if (!local_mode && !has_config_file) {
-                    //fill with the conditions
+                    //Check that login is not empty
+                    if (strlen(param->parameter_value.str_param) == 0) {
+                        fprintf(stderr, "ERROR: Login cannot be empty.\n");
+                        return false;
+                    }
+                    //Check format is user@server
+                    char *at_sign = strchr(param->parameter_value.str_param, '@');
+                    if (at_sign == NULL) {
+                        fprintf(stderr, "ERROR: Login must be in the format user@server.\n");
+                        return false;
+                    }
+                    has_login = true;
                 }
                 break;
             case PARAM_REMOTE_SERVER:
                 //Tested only if the program isn't for a local use:
                 if (!local_mode && !has_config_file) {
-                    //fill with the conditions
+                    //Check that server address is not empty
+                    if (strlen(param->parameter_value.str_param) == 0) {
+                        fprintf(stderr, "ERROR: Remote server address cannot be empty.\n");
+                        return false;
+                    }
+                    //Check that -l and -s are not both specified
+                    if (has_login) {
+                        fprintf(stderr, "ERROR: Cannot use both -l/--login and -s/--remote-server.\n");
+                        return false;
+                    }
+                    has_remote_server = true;
                 }
                 break;
 
             case PARAM_USERNAME:
                 //Tested only if the program isn't for a local use:
                 if (!local_mode && !has_config_file) {
-                    //fill with the conditions
+                    //Check that username is not empty
+                    if (strlen(param->parameter_value.str_param) == 0) {
+                        fprintf(stderr, "ERROR: Username cannot be empty.\n");
+                        return false;
+                    }
+                    //Check that -u is not used with -l
+                    if (has_login) {
+                        fprintf(stderr, "ERROR: Cannot use both -l/--login and -u/--username.\n");
+                        return false;
+                    }
                 }
                 break;
                 
             case PARAM_PASSWORD:
                 //Tested only if the program isn't for a local use:
                 if (!local_mode && !has_config_file) {
-                    //fill with the conditions
+                    //Check that password is not empty
+                    if (strlen(param->parameter_value.str_param) == 0) {
+                        fprintf(stderr, "ERROR: Password cannot be empty.\n");
+                        return false;
+                    }
                 }
                 break;
             }
