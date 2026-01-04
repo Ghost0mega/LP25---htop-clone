@@ -5,6 +5,55 @@
 ==========*/
 
 /**
+ * Escape special shell characters in a string for use in sshpass
+ * @param src Source string
+ * @param dst Destination buffer (should be at least 2x size of src)
+ * @param dst_size Size of destination buffer
+ * @return 0 on success, -1 on failure
+ */
+static int escape_shell_string(const char *src, char *dst, size_t dst_size) {
+    if (!src || !dst) return -1;
+    
+    size_t src_len = strlen(src);
+    size_t dst_pos = 0;
+    
+    for (size_t i = 0; i < src_len; i++) {
+        char c = src[i];
+        
+        // Check if we have enough space (worst case: character needs escaping)
+        if (dst_pos + 2 >= dst_size) {
+            return -1; // Buffer overflow prevention
+        }
+        
+        // Escape special characters for shell
+        switch (c) {
+            case '\'':
+                // Replace ' with '\''
+                dst[dst_pos++] = '\'';
+                dst[dst_pos++] = '\\';
+                dst[dst_pos++] = '\'';
+                dst[dst_pos++] = '\'';
+                break;
+            case '"':
+            case '\\':
+            case '$':
+            case '`':
+                // Escape these with backslash
+                if (dst_pos + 2 >= dst_size) return -1;
+                dst[dst_pos++] = '\\';
+                dst[dst_pos++] = c;
+                break;
+            default:
+                dst[dst_pos++] = c;
+                break;
+        }
+    }
+    
+    dst[dst_pos] = '\0';
+    return 0;
+}
+
+/**
  * Parse login in format user@server and extract username and server address.
  * @param login Login string in format user@server.
  * @param username Buffer to store extracted username.
@@ -159,10 +208,10 @@ bool is_config_file_valid(char path[STR_MAX]) {
             fclose(fptr);
             return false;
         }
-        // Field 2: port (must be valid number between 1024 and 65535)
+        // Field 2: port (must be valid number between 1 and 65535)
         int port = atoi(fields[2]);
-        if (port < 1024 || port > 65535) {
-            fprintf(stderr, "ERROR: Line %d: port must be between 1024 and 65535.\n", line_count);
+        if (port < 1 || port > 65535) {
+            fprintf(stderr, "ERROR: Line %d: port must be between 1 and 65535.\n", line_count);
             fclose(fptr);
             return false;
         }
@@ -204,8 +253,9 @@ int network_init(parameters_table *parameters, int params_count) {
     char config_path[STR_MAX] = {0};
     if (is_param_type(parameters, params_count, PARAM_REMOTE_CONFIG)) {
         get_string_parameters(parameters, params_count, PARAM_REMOTE_CONFIG, config_path);
-    } else {
-        // If no config param, look for default hidden file ".config" in cwd
+    } else if (!is_param_type(parameters, params_count, PARAM_LOGIN) && 
+               !is_param_type(parameters, params_count, PARAM_REMOTE_SERVER)) {
+        // Only look for default hidden file ".config" in cwd if no -l or -s options
         if (access(".config", R_OK) == 0) {
             strncpy(config_path, ".config", STR_MAX-1);
             config_path[STR_MAX-1] = '\0';
@@ -310,8 +360,31 @@ int network_init(parameters_table *parameters, int params_count) {
         remote.password[sizeof(remote.password)-1] = '\0';
     }
 
-    //TODO: Store the remote config and establish connection
-    printf("Remote config: user=%s, server=%s, port=%d\n", remote.username, remote.address, remote.port);
+    /* Store the single remote configuration into the global array so
+     * other parts of the program (polling/manager) can use it. */
+    if (g_remote_configs) {
+        free(g_remote_configs);
+        g_remote_configs = NULL;
+        g_remote_configs_count = 0;
+    }
+
+    g_remote_configs = calloc(1, sizeof(remote_config));
+    if (!g_remote_configs) {
+        fprintf(stderr, "ERROR: Cannot allocate remote config\n");
+        return -1;
+    }
+    /* Fill the config */
+    strncpy(g_remote_configs[0].name, remote.address, sizeof(g_remote_configs[0].name)-1);
+    g_remote_configs[0].name[sizeof(g_remote_configs[0].name)-1] = '\0';
+    strncpy(g_remote_configs[0].address, remote.address, sizeof(g_remote_configs[0].address)-1);
+    g_remote_configs[0].address[sizeof(g_remote_configs[0].address)-1] = '\0';
+    g_remote_configs[0].port = remote.port;
+    strncpy(g_remote_configs[0].username, remote.username, sizeof(g_remote_configs[0].username)-1);
+    g_remote_configs[0].username[sizeof(g_remote_configs[0].username)-1] = '\0';
+    strncpy(g_remote_configs[0].password, remote.password, sizeof(g_remote_configs[0].password)-1);
+    g_remote_configs[0].password[sizeof(g_remote_configs[0].password)-1] = '\0';
+    g_remote_configs[0].type = remote.type;
+    g_remote_configs_count = 1;
 
     return 0;
 }
@@ -323,18 +396,23 @@ int network_init(parameters_table *parameters, int params_count) {
 int network_get_processes_ssh(remote_config *config, process_info **out_processes) {
     if (!config || !out_processes) return -1;
 
-    fprintf(stdout, "INFO: Connecting to %s (%s) via SSH...\n", config->name, config->address);
-
     /* Create temporary file for output */
     char tmpfile[256];
     snprintf(tmpfile, sizeof(tmpfile), "/tmp/htop_ssh_%d.txt", getpid());
 
+    /* Escape the password for safe shell usage */
+    char escaped_password[STR_MAX * 2];
+    if (escape_shell_string(config->password, escaped_password, sizeof(escaped_password)) != 0) {
+        fprintf(stderr, "ERROR: Password contains invalid characters\n");
+        return -1;
+    }
+
     /* Build SSH command to get process list */
-    char ssh_cmd[STR_MAX];
+    char ssh_cmd[STR_MAX * 2];
     snprintf(ssh_cmd, sizeof(ssh_cmd),
              "sshpass -p '%s' ssh -o StrictHostKeyChecking=no -p %d %s@%s "
              "'ps aux' > %s 2>&1",
-             config->password, config->port, config->username, config->address, tmpfile);
+             escaped_password, config->port, config->username, config->address, tmpfile);
 
     int ret = system(ssh_cmd);
     if (ret != 0) {
@@ -389,25 +467,42 @@ int network_get_processes_ssh(remote_config *config, process_info **out_processe
     while (fgets(line, sizeof(line), fp) && idx < count) {
         /* Simple parsing: USER PID %CPU %MEM VSZ RSS TTY STAT START TIME COMMAND */
         int pid;
-        char user[64], cmd[256];
+        char user[64], stat_str[16], cmd[256];
         float cpu, mem;
         
-        if (sscanf(line, "%s %d %f %f %*s %*s %*s %*s %*s %*s %s",
-                   user, &pid, &cpu, &mem, cmd) == 5) {
+        if (sscanf(line, "%63s %d %f %f %*s %*s %*s %15s %*s %*s %255[^\n]",
+                   user, &pid, &cpu, &mem, stat_str, cmd) == 6) {
             (*out_processes)[idx].pid = pid;
-            strncpy((*out_processes)[idx].name, cmd, sizeof((*out_processes)[idx].name)-1);
+            /* Trim leading spaces from command */
+            char *trimmed = cmd;
+            while (*trimmed && isspace((unsigned char)*trimmed)) {
+                trimmed++;
+            }
+            strncpy((*out_processes)[idx].name, trimmed, sizeof((*out_processes)[idx].name)-1);
             (*out_processes)[idx].name[sizeof((*out_processes)[idx].name)-1] = '\0';
             (*out_processes)[idx].cpu_usage = cpu;
             (*out_processes)[idx].mem_usage = (unsigned long)(mem * 1024 * 1024); /* Convert % to bytes approx */
-            (*out_processes)[idx].state = PROCESS_STATE_RUNNING;
+            /* Parse process state from ps STAT column (first character) */
+            switch (stat_str[0]) {
+                case 'R': (*out_processes)[idx].state = PROCESS_STATE_RUNNING; break;
+                case 'S': (*out_processes)[idx].state = PROCESS_STATE_SLEEPING; break;
+                case 'D': (*out_processes)[idx].state = PROCESS_STATE_DISK_SLEEP; break;
+                case 'Z': (*out_processes)[idx].state = PROCESS_STATE_ZOMBIE; break;
+                case 'T': (*out_processes)[idx].state = PROCESS_STATE_STOPPED; break;
+                case 't': (*out_processes)[idx].state = PROCESS_STATE_TRACING_STOP; break;
+                case 'X': (*out_processes)[idx].state = PROCESS_STATE_DEAD; break;
+                case 'K': (*out_processes)[idx].state = PROCESS_STATE_WAKEKILL; break;
+                case 'W': (*out_processes)[idx].state = PROCESS_STATE_WAKING; break;
+                case 'P': (*out_processes)[idx].state = PROCESS_STATE_PARKED; break;
+                case 'I': (*out_processes)[idx].state = PROCESS_STATE_IDLE; break;
+                default: (*out_processes)[idx].state = PROCESS_STATE_UNKNOWN; break;
+            }
             idx++;
         }
     }
 
     fclose(fp);
     unlink(tmpfile);
-    
-    fprintf(stdout, "INFO: Retrieved %d processes from %s\n", idx, config->name);
     return idx;
 }
 
@@ -418,19 +513,26 @@ int network_get_processes_ssh(remote_config *config, process_info **out_processe
 int network_get_processes_telnet(remote_config *config, process_info **out_processes) {
     if (!config || !out_processes) return -1;
 
-    fprintf(stdout, "INFO: Connecting to %s (%s) via Telnet...\n", config->name, config->address);
-
     /* Telnet implementation would be similar to SSH but using telnet protocol
      * For now, provide a simplified version using nc (netcat) */
     char tmpfile[256];
     snprintf(tmpfile, sizeof(tmpfile), "/tmp/htop_telnet_%d.txt", getpid());
 
+    /* Escape credentials for safe shell usage */
+    char escaped_username[STR_MAX * 2];
+    char escaped_password[STR_MAX * 2];
+    if (escape_shell_string(config->username, escaped_username, sizeof(escaped_username)) != 0 ||
+        escape_shell_string(config->password, escaped_password, sizeof(escaped_password)) != 0) {
+        fprintf(stderr, "ERROR: Credentials contain invalid characters\n");
+        return -1;
+    }
+
     /* Build command - this is simplified and would need expect or similar for real telnet */
-    char telnet_cmd[STR_MAX];
+    char telnet_cmd[STR_MAX * 2];
     snprintf(telnet_cmd, sizeof(telnet_cmd),
              "(echo %s; echo %s; echo 'ps aux'; sleep 1) | "
              "nc -w 2 %s %d > %s 2>&1",
-             config->username, config->password, config->address, config->port, tmpfile);
+             escaped_username, escaped_password, config->address, config->port, tmpfile);
 
     int ret = system(telnet_cmd);
     if (ret != 0) {
@@ -476,7 +578,7 @@ int network_get_processes_telnet(remote_config *config, process_info **out_proce
         char cmd[256];
         float cpu, mem;
         
-        if (sscanf(line, "%*s %d %f %f %*s %*s %*s %*s %*s %*s %s",
+        if (sscanf(line, "%*s %d %f %f %*s %*s %*s %*s %*s %*s %255s",
                    &pid, &cpu, &mem, cmd) == 4) {
             (*out_processes)[idx].pid = pid;
             strncpy((*out_processes)[idx].name, cmd, sizeof((*out_processes)[idx].name)-1);
@@ -490,8 +592,6 @@ int network_get_processes_telnet(remote_config *config, process_info **out_proce
 
     fclose(fp);
     unlink(tmpfile);
-    
-    fprintf(stdout, "INFO: Retrieved %d processes from %s\n", idx, config->name);
     return idx;
 }
 
@@ -519,9 +619,9 @@ int network_poll_all_processes(process_info **all_processes, int local_count) {
         }
 
         if (remote_count > 0 && remote_procs) {
-            /* Reallocate main array to fit new processes */
+            /* Reallocate main array to fit new processes + terminator */
             process_info *temp = realloc(*all_processes, 
-                                        (total_count + remote_count) * sizeof(process_info));
+                                        (total_count + remote_count + 1) * sizeof(process_info));
             if (!temp) {
                 fprintf(stderr, "ERROR: Failed to reallocate process array\n");
                 free(remote_procs);
@@ -529,20 +629,14 @@ int network_poll_all_processes(process_info **all_processes, int local_count) {
             }
             *all_processes = temp;
 
-            /* Copy remote processes and add server name info */
+            /* Copy remote processes */
             for (int j = 0; j < remote_count; j++) {
                 (*all_processes)[total_count + j] = remote_procs[j];
-                /* Append server name to process name for identification */
-                char new_name[512];
-                snprintf(new_name, sizeof(new_name), "[%s] %s", 
-                        cfg->name, remote_procs[j].name);
-                strncpy((*all_processes)[total_count + j].name, new_name, 
-                       sizeof((*all_processes)[total_count + j].name)-1);
-                (*all_processes)[total_count + j].name[
-                    sizeof((*all_processes)[total_count + j].name)-1] = '\0';
             }
 
             total_count += remote_count;
+            /* Add terminator */
+            (*all_processes)[total_count].pid = 0;
             free(remote_procs);
         }
     }

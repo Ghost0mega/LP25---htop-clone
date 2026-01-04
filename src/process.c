@@ -233,6 +233,7 @@ void *get_all_processes(void *arg) {
   bool *stop_flag = args->stop_flag_ptr;
   pthread_mutex_t *mutex = args->mutex;
   bool include_remote = args->include_remote;
+  bool include_local = args->include_local;
 
   process_info *prev_list = NULL;
   unsigned long long prev_system_time = 0;
@@ -246,6 +247,11 @@ void *get_all_processes(void *arg) {
 
     while (pid_list[count] != 0) {
       count++;
+    }
+
+    // If we don't want local processes, set count to 0
+    if (!include_local) {
+      count = 0;
     }
 
     process_info *process_list = calloc(count + 1, sizeof(process_info));

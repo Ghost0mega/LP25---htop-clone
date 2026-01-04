@@ -15,6 +15,7 @@ int manager_start_process_thread(process_info **process_list_ptr, pthread_mutex_
     proc_args->stop_flag_ptr = &proc_stop_flag;
     proc_args->mutex = mutex;
     proc_args->include_remote = false;  /* Default: no remote processes */
+    proc_args->include_local = true;    /* Always include local by default */
 
     if (pthread_create(&proc_thread, NULL, get_all_processes, proc_args) != 0) {
         free(proc_args);
@@ -32,7 +33,27 @@ int manager_start_process_thread_with_remote(process_info **process_list_ptr, pt
     proc_args->process_list_ptr = process_list_ptr;
     proc_args->stop_flag_ptr = &proc_stop_flag;
     proc_args->mutex = mutex;
-    proc_args->include_remote = true;  /* Include remote processes */
+    proc_args->include_remote = true;   /* Include remote processes */
+    proc_args->include_local = false;   /* Don't include local by default with remote */
+
+    if (pthread_create(&proc_thread, NULL, get_all_processes, proc_args) != 0) {
+        free(proc_args);
+        return -1;
+    }
+    return 0;
+}
+
+int manager_start_process_thread_with_all(process_info **process_list_ptr, pthread_mutex_t *mutex) {
+    proc_stop_flag = false;
+    proc_args = malloc(sizeof(thread_args_t));
+    if (!proc_args) {
+        return -1;
+    }
+    proc_args->process_list_ptr = process_list_ptr;
+    proc_args->stop_flag_ptr = &proc_stop_flag;
+    proc_args->mutex = mutex;
+    proc_args->include_remote = true;   /* Include remote processes */
+    proc_args->include_local = true;    /* Also include local processes */
 
     if (pthread_create(&proc_thread, NULL, get_all_processes, proc_args) != 0) {
         free(proc_args);
@@ -59,6 +80,37 @@ int ui_and_process_loop() {
     if (g_remote_configs_count > 0) {
         ret = manager_start_process_thread_with_remote(&process_list, &mutex);
     } else {
+        ret = manager_start_process_thread(&process_list, &mutex);
+    }
+    
+    if (ret != 0) {
+        fprintf(stderr, "ERROR: Failed to start process thread\n");
+        return EXIT_FAILURE;
+    }
+
+    ui_loop(&process_list, &mutex);
+
+    manager_stop_process_thread();
+
+    if (process_list) free(process_list);
+    
+    return EXIT_SUCCESS;
+}
+
+int ui_and_process_loop_with_params(bool include_local, bool include_remote_only) {
+    process_info *process_list = NULL;
+    pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+    /* Start process thread based on parameters */
+    int ret;
+    if (include_remote_only) {
+        // Remote only (no local processes)
+        ret = manager_start_process_thread_with_remote(&process_list, &mutex);
+    } else if (include_local && g_remote_configs_count > 0) {
+        // Both local and remote
+        ret = manager_start_process_thread_with_all(&process_list, &mutex);
+    } else {
+        // Local only (default)
         ret = manager_start_process_thread(&process_list, &mutex);
     }
     

@@ -37,6 +37,13 @@ void manager_stop_process_thread(void);
 int ui_and_process_loop();
 
 /**
+ * Main UI and process loop with parameters.
+ * @param include_local Include local processes.
+ * @param include_remote_only Include only remote processes (no local).
+ */
+int ui_and_process_loop_with_params(bool include_local, bool include_remote_only);
+
+/**
  * Execute the dry run mode (tests access to local and/or remote processes).
  * @param parameters Table of parameters from CLI.
  * @param params_count Number of parameters.

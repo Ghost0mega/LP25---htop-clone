@@ -37,6 +37,7 @@ typedef struct {
   bool *stop_flag_ptr;
   pthread_mutex_t *mutex;
   bool include_remote;  /* Include remote processes in the list */
+  bool include_local;   /* Include local processes in the list */
 } thread_args_t;
 
 /* Getting process information */

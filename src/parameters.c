@@ -197,17 +197,13 @@ bool params_validate(parameters_table *params, int params_count) {
             case PARAM_PORT:
                 //Tested only if the program isn't for a local use:
                 if (!local_mode && !has_config_file) {
-                    //The parameters isn't correct if the value is less than 1024 or bigger than 65535:
-                    if ((param->parameter_value.int_param < 1024) || (param->parameter_value.int_param > 65535)) {
-                        fprintf(stderr,"ERROR: Please enter a port value between 1024 and 65535.\n");
+                    //The parameters isn't correct if the value is less than 1 or bigger than 65535:
+                    if ((param->parameter_value.int_param < 1) || (param->parameter_value.int_param > 65535)) {
+                        fprintf(stderr,"ERROR: Please enter a port value between 1 and 65535.\n");
                         return false;
-                    } else {
-                        //We verify that the port is free:
-                        if(!is_port_free(param->parameter_value.int_param)) {
-                            fprintf(stderr,"ERROR: The selected port is already used.\n");
-                            return false;
-                        }
                     }
+                    // Note: For remote connections, we don't check if the port is free locally
+                    // as the port is on a remote machine, not on localhost
                 }
                 break;
 
