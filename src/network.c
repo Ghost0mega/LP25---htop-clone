@@ -408,9 +408,15 @@ int network_get_processes_ssh(remote_config *config, process_info **out_processe
         return 0;
     }
     int idx = 0;
+    int config_index = -1;
+    for (int ci = 0; ci < g_remote_configs_count; ci++) {
+        if (&g_remote_configs[ci] == config) {
+            config_index = ci;
+            break;
+        }
+    }
     
     while (fgets(line, sizeof(line), fp) && idx < count) {
-        /* Simple parsing: USER PID %CPU %MEM VSZ RSS TTY STAT START TIME COMMAND */
         int pid;
         char user[64], stat_str[16], cmd[256];
         float cpu, mem;
@@ -418,16 +424,17 @@ int network_get_processes_ssh(remote_config *config, process_info **out_processe
         if (sscanf(line, "%63s %d %f %f %*s %*s %*s %15s %*s %*s %255[^\n]",
                    user, &pid, &cpu, &mem, stat_str, cmd) == 6) {
             (*out_processes)[idx].pid = pid;
-            /* Trim leading spaces from command */
+            
             char *trimmed = cmd;
             while (*trimmed && isspace((unsigned char)*trimmed)) {
                 trimmed++;
             }
+            
             strncpy((*out_processes)[idx].name, trimmed, sizeof((*out_processes)[idx].name)-1);
             (*out_processes)[idx].name[sizeof((*out_processes)[idx].name)-1] = '\0';
             (*out_processes)[idx].cpu_usage = cpu;
-            (*out_processes)[idx].mem_usage = (unsigned long)(mem * 1024 * 1024); /* Convert % to bytes approx */
-            /* Parse process state from ps STAT column (first character) */
+            (*out_processes)[idx].mem_usage = (unsigned long)(mem * 1024 * 1024);
+            
             switch (stat_str[0]) {
                 case 'R': (*out_processes)[idx].state = PROCESS_STATE_RUNNING; break;
                 case 'S': (*out_processes)[idx].state = PROCESS_STATE_SLEEPING; break;
@@ -442,6 +449,10 @@ int network_get_processes_ssh(remote_config *config, process_info **out_processe
                 case 'I': (*out_processes)[idx].state = PROCESS_STATE_IDLE; break;
                 default: (*out_processes)[idx].state = PROCESS_STATE_UNKNOWN; break;
             }
+            
+            (*out_processes)[idx].uptime = 0;
+            (*out_processes)[idx].remote_config_index = config_index;  // NOUVEAU
+            
             idx++;
         }
     }
@@ -494,4 +505,36 @@ int network_poll_all_processes(process_info **all_processes, int local_count) {
 
 void network_poll(void) {
     /* stub: poll network stats */
+}
+
+int network_kill_process(int config_index, int pid, int signal) {
+    if (config_index < 0 || config_index >= g_remote_configs_count) {
+        return -1;
+    }
+    
+    remote_config *config = &g_remote_configs[config_index];
+    
+    /* Escape password for safe shell usage */
+    char escaped_password[STR_MAX * 2];
+    if (escape_shell_string(config->password, escaped_password, sizeof(escaped_password)) != 0) {
+        fprintf(stderr, "ERROR: Password contains invalid characters\n");
+        return -1;
+    }
+    
+    /* Build SSH command to send signal */
+    char ssh_cmd[STR_MAX * 2];
+    snprintf(ssh_cmd, sizeof(ssh_cmd),
+             "sshpass -p '%s' ssh -o StrictHostKeyChecking=no -p %d %s@%s "
+             "'kill -%d %d' 2>&1",
+             escaped_password, config->port, config->username, config->address,
+             signal, pid);
+    
+    int ret = system(ssh_cmd);
+    if (ret != 0) {
+        fprintf(stderr, "ERROR: Failed to send signal to remote process %d on %s\n", 
+                pid, config->name);
+        return -1;
+    }
+    
+    return 0;
 }

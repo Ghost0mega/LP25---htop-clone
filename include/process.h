@@ -23,13 +23,13 @@ typedef struct process_info {
   int pid;
   process_state state;
   char name[256];
-  // char user[64];
   float cpu_usage;
   unsigned long mem_usage;
   long uptime;
   unsigned long cpu_utime;
   unsigned long cpu_stime;
   unsigned long starttime;
+  int remote_config_index;  // -1 pour local, sinon index dans g_remote_configs
 } process_info;
 
 typedef struct {

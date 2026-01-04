@@ -80,4 +80,13 @@ int network_poll_all_processes(process_info **all_processes, int local_count);
 
 void network_poll(void);
 
+/**
+ * Send a signal to a remote process via SSH.
+ * @param config_index Index in g_remote_configs array.
+ * @param pid Process ID on remote machine.
+ * @param signal Signal number (SIGTERM, SIGKILL, etc).
+ * @return 0 on success, -1 on failure.
+ */
+int network_kill_process(int config_index, int pid, int signal);
+
 #endif /* NETWORK_H */

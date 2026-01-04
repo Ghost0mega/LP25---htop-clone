@@ -147,8 +147,8 @@ int get_process_info(int pid, process_info *info) {
   }
   info->cpu_usage = info->cpu_utime + info->cpu_stime;
 
-  info->uptime =
-      get_system_uptime() - (info->starttime / get_clock_ticks_per_second());
+  info->uptime = get_system_uptime() - (info->starttime / get_clock_ticks_per_second());
+  info->remote_config_index = -1;  // -1 indique un processus local
 
   return 0;
 }

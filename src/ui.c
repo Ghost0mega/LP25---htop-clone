@@ -414,134 +414,186 @@ void ui_loop(process_info **process_list_ptr, pthread_mutex_t *mutex) {
         
       /* F5 : Mettre un processus en pause (SIGSTOP) */
       case KEY_F(5): {
-        space_value = 5;
-        snprintf(key, sizeof(key), "");
-        
-        pthread_mutex_lock(mutex);
-        process_info *plist_pause = *process_list_ptr;
-        if (plist_pause && selection >= 0) {
-            int target_pid = plist_pause[selection].pid;
-            char target_name[256];
-            strncpy(target_name, plist_pause[selection].name, sizeof(target_name)-1);
-            pthread_mutex_unlock(mutex);
-            
-            char msg[256];
-            snprintf(msg, sizeof(msg), "Mettre en pause le processus %s (PID: %d) ?", 
-                     target_name, target_pid);
-            
-            if (confirm_dialog(msg)) {
-                if (kill(target_pid, SIGSTOP) == 0) {
-                    snprintf(msg, sizeof(msg), "Processus %d mis en pause", target_pid);
-                    info_dialog(msg, 0);
-                } else {
-                    snprintf(msg, sizeof(msg), "Erreur: impossible de mettre en pause le processus %d", target_pid);
-                    info_dialog(msg, 1);
-                }
-            }
-        } else {
-            pthread_mutex_unlock(mutex);
-            info_dialog("Aucun processus selectionne", 1);
-        }
-        break;
+          space_value = 5;
+          snprintf(key, sizeof(key), "");
+          
+          pthread_mutex_lock(mutex);
+          process_info *plist_pause = *process_list_ptr;
+          if (plist_pause && selection >= 0) {
+              int target_pid = plist_pause[selection].pid;
+              int remote_idx = plist_pause[selection].remote_config_index;
+              char target_name[256];
+              strncpy(target_name, plist_pause[selection].name, sizeof(target_name)-1);
+              pthread_mutex_unlock(mutex);
+              
+              char msg[256];
+              if (remote_idx >= 0) {
+                  snprintf(msg, sizeof(msg), "Mettre en pause le processus distant %s (PID: %d) sur %s ?", 
+                          target_name, target_pid, g_remote_configs[remote_idx].name);
+              } else {
+                  snprintf(msg, sizeof(msg), "Mettre en pause le processus %s (PID: %d) ?", 
+                          target_name, target_pid);
+              }
+              
+              if (confirm_dialog(msg)) {
+                  int result;
+                  if (remote_idx >= 0) {
+                      result = network_kill_process(remote_idx, target_pid, SIGSTOP);
+                  } else {
+                      result = (kill(target_pid, SIGSTOP) == 0) ? 0 : -1;
+                  }
+                  
+                  if (result == 0) {
+                      snprintf(msg, sizeof(msg), "Processus %d mis en pause", target_pid);
+                      info_dialog(msg, 0);
+                  } else {
+                      snprintf(msg, sizeof(msg), "Erreur: impossible de mettre en pause le processus %d", target_pid);
+                      info_dialog(msg, 1);
+                  }
+              }
+          } else {
+              pthread_mutex_unlock(mutex);
+              info_dialog("Aucun processus selectionne", 1);
+          }
+          break;
       }
-        
+
       /* F6 : Arrêter un processus (SIGTERM) */
       case KEY_F(6): {
-        space_value = 5;
-        snprintf(key, sizeof(key), "");
-        
-        pthread_mutex_lock(mutex);
-        process_info *plist_term = *process_list_ptr;
-        if (plist_term && selection >= 0) {
-            int target_pid = plist_term[selection].pid;
-            char target_name[256];
-            strncpy(target_name, plist_term[selection].name, sizeof(target_name)-1);
-            pthread_mutex_unlock(mutex);
-            
-            char msg[256];
-            snprintf(msg, sizeof(msg), "Arreter le processus %s (PID: %d) ?", 
-                     target_name, target_pid);
-            
-            if (confirm_dialog(msg)) {
-                if (kill(target_pid, SIGTERM) == 0) {
-                    snprintf(msg, sizeof(msg), "Signal SIGTERM envoye au processus %d", target_pid);
-                    info_dialog(msg, 0);
-                } else {
-                    snprintf(msg, sizeof(msg), "Erreur: impossible d'arreter le processus %d", target_pid);
-                    info_dialog(msg, 1);
-                }
-            }
-        } else {
-            pthread_mutex_unlock(mutex);
-            info_dialog("Aucun processus selectionne", 1);
-        }
-        break;
+          space_value = 5;
+          snprintf(key, sizeof(key), "");
+          
+          pthread_mutex_lock(mutex);
+          process_info *plist_term = *process_list_ptr;
+          if (plist_term && selection >= 0) {
+              int target_pid = plist_term[selection].pid;
+              int remote_idx = plist_term[selection].remote_config_index;
+              char target_name[256];
+              strncpy(target_name, plist_term[selection].name, sizeof(target_name)-1);
+              pthread_mutex_unlock(mutex);
+              
+              char msg[256];
+              if (remote_idx >= 0) {
+                  snprintf(msg, sizeof(msg), "Arreter le processus distant %s (PID: %d) sur %s ?", 
+                          target_name, target_pid, g_remote_configs[remote_idx].name);
+              } else {
+                  snprintf(msg, sizeof(msg), "Arreter le processus %s (PID: %d) ?", 
+                          target_name, target_pid);
+              }
+              
+              if (confirm_dialog(msg)) {
+                  int result;
+                  if (remote_idx >= 0) {
+                      result = network_kill_process(remote_idx, target_pid, SIGTERM);
+                  } else {
+                      result = (kill(target_pid, SIGTERM) == 0) ? 0 : -1;
+                  }
+                  
+                  if (result == 0) {
+                      snprintf(msg, sizeof(msg), "Signal SIGTERM envoye au processus %d", target_pid);
+                      info_dialog(msg, 0);
+                  } else {
+                      snprintf(msg, sizeof(msg), "Erreur: impossible d'arreter le processus %d", target_pid);
+                      info_dialog(msg, 1);
+                  }
+              }
+          } else {
+              pthread_mutex_unlock(mutex);
+              info_dialog("Aucun processus selectionne", 1);
+          }
+          break;
       }
-        
+
       /* F7 : Tuer un processus (SIGKILL) */
       case KEY_F(7): {
-        space_value = 5;
-        snprintf(key, sizeof(key), "");
-        
-        pthread_mutex_lock(mutex);
-        process_info *plist_kill = *process_list_ptr;
-        if (plist_kill && selection >= 0) {
-            int target_pid = plist_kill[selection].pid;
-            char target_name[256];
-            strncpy(target_name, plist_kill[selection].name, sizeof(target_name)-1);
-            pthread_mutex_unlock(mutex);
-            
-            char msg[256];
-            snprintf(msg, sizeof(msg), "TUER (SIGKILL) le processus %s (PID: %d) ?", 
-                     target_name, target_pid);
-            
-            if (confirm_dialog(msg)) {
-                if (kill(target_pid, SIGKILL) == 0) {
-                    snprintf(msg, sizeof(msg), "Processus %d tue (SIGKILL)", target_pid);
-                    info_dialog(msg, 0);
-                } else {
-                    snprintf(msg, sizeof(msg), "Erreur: impossible de tuer le processus %d", target_pid);
-                    info_dialog(msg, 1);
-                }
-            }
-        } else {
-            pthread_mutex_unlock(mutex);
-            info_dialog("Aucun processus selectionne", 1);
-        }
-        break;
+          space_value = 5;
+          snprintf(key, sizeof(key), "");
+          
+          pthread_mutex_lock(mutex);
+          process_info *plist_kill = *process_list_ptr;
+          if (plist_kill && selection >= 0) {
+              int target_pid = plist_kill[selection].pid;
+              int remote_idx = plist_kill[selection].remote_config_index;
+              char target_name[256];
+              strncpy(target_name, plist_kill[selection].name, sizeof(target_name)-1);
+              pthread_mutex_unlock(mutex);
+              
+              char msg[256];
+              if (remote_idx >= 0) {
+                  snprintf(msg, sizeof(msg), "TUER (SIGKILL) le processus distant %s (PID: %d) sur %s ?", 
+                          target_name, target_pid, g_remote_configs[remote_idx].name);
+              } else {
+                  snprintf(msg, sizeof(msg), "TUER (SIGKILL) le processus %s (PID: %d) ?", 
+                          target_name, target_pid);
+              }
+              
+              if (confirm_dialog(msg)) {
+                  int result;
+                  if (remote_idx >= 0) {
+                      result = network_kill_process(remote_idx, target_pid, SIGKILL);
+                  } else {
+                      result = (kill(target_pid, SIGKILL) == 0) ? 0 : -1;
+                  }
+                  
+                  if (result == 0) {
+                      snprintf(msg, sizeof(msg), "Processus %d tue (SIGKILL)", target_pid);
+                      info_dialog(msg, 0);
+                  } else {
+                      snprintf(msg, sizeof(msg), "Erreur: impossible de tuer le processus %d", target_pid);
+                      info_dialog(msg, 1);
+                  }
+              }
+          } else {
+              pthread_mutex_unlock(mutex);
+              info_dialog("Aucun processus selectionne", 1);
+          }
+          break;
       }
-        
+
       /* F8 : Redémarrer un processus (SIGCONT) */
       case KEY_F(8): {
-        space_value = 5;
-        snprintf(key, sizeof(key), "");
-        
-        pthread_mutex_lock(mutex);
-        process_info *plist_cont = *process_list_ptr;
-        if (plist_cont && selection >= 0) {
-            int target_pid = plist_cont[selection].pid;
-            char target_name[256];
-            strncpy(target_name, plist_cont[selection].name, sizeof(target_name)-1);
-            pthread_mutex_unlock(mutex);
-            
-            char msg[256];
-            snprintf(msg, sizeof(msg), "Redemarrer le processus %s (PID: %d) ?", 
-                     target_name, target_pid);
-            
-            if (confirm_dialog(msg)) {
-                if (kill(target_pid, SIGCONT) == 0) {
-                    snprintf(msg, sizeof(msg), "Processus %d redemarre (SIGCONT)", target_pid);
-                    info_dialog(msg, 0);
-                } else {
-                    snprintf(msg, sizeof(msg), "Erreur: impossible de redemarrer le processus %d", target_pid);
-                    info_dialog(msg, 1);
-                }
-            }
-        } else {
-            pthread_mutex_unlock(mutex);
-            info_dialog("Aucun processus selectionne", 1);
-        }
-        break;
+          space_value = 5;
+          snprintf(key, sizeof(key), "");
+          
+          pthread_mutex_lock(mutex);
+          process_info *plist_cont = *process_list_ptr;
+          if (plist_cont && selection >= 0) {
+              int target_pid = plist_cont[selection].pid;
+              int remote_idx = plist_cont[selection].remote_config_index;
+              char target_name[256];
+              strncpy(target_name, plist_cont[selection].name, sizeof(target_name)-1);
+              pthread_mutex_unlock(mutex);
+              
+              char msg[256];
+              if (remote_idx >= 0) {
+                  snprintf(msg, sizeof(msg), "Redemarrer le processus distant %s (PID: %d) sur %s ?", 
+                          target_name, target_pid, g_remote_configs[remote_idx].name);
+              } else {
+                  snprintf(msg, sizeof(msg), "Redemarrer le processus %s (PID: %d) ?", 
+                          target_name, target_pid);
+              }
+              
+              if (confirm_dialog(msg)) {
+                  int result;
+                  if (remote_idx >= 0) {
+                      result = network_kill_process(remote_idx, target_pid, SIGCONT);
+                  } else {
+                      result = (kill(target_pid, SIGCONT) == 0) ? 0 : -1;
+                  }
+                  
+                  if (result == 0) {
+                      snprintf(msg, sizeof(msg), "Processus %d redemarre (SIGCONT)", target_pid);
+                      info_dialog(msg, 0);
+                  } else {
+                      snprintf(msg, sizeof(msg), "Erreur: impossible de redemarrer le processus %d", target_pid);
+                      info_dialog(msg, 1);
+                  }
+              }
+          } else {
+              pthread_mutex_unlock(mutex);
+              info_dialog("Aucun processus selectionne", 1);
+          }
+          break;
       }
 
       /* Navigation : flèche haut -> sélection monte, gérer scroll si besoin */
