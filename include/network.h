@@ -14,18 +14,12 @@ typedef struct parameters_table parameters_table;
 *  TYPES:  *
 ==========*/
 
-typedef enum connection_type {
-    CONN_SSH,
-    CONN_TELNET
-} connection_type;
-
 typedef struct remote_config {
     char name[64];
     char address[128];
     int port;
     char username[64];
     char password[64];
-    connection_type type;
 } remote_config;
 
 /* Global array to store remote configurations */
@@ -33,7 +27,6 @@ typedef struct remote_config {
 extern remote_config *g_remote_configs;
 extern int g_remote_configs_count;
 
-/* Network API (stub) */
 
 /*=========
 * METHODS: *
@@ -50,26 +43,19 @@ int parse_login(const char *login, char *username, char *server);
 
 /**
  * Return true if the given port is free to use on the localhost.
- * Utilisé pour valider qu'un port fourni en paramètre n'est pas déjà pris.
  * @param port The port to test.
  */
 bool is_port_free(int port);
 
 /**
  * Return true if the given file match this schema:
- * server_name1:server_adress:port:username:password:connection_type1
- * server_name2:server_adress:port:username:password:connection_type2
+ * server_name1:server_adress:port:username:password
  * @param path File's path
  */
 bool is_config_file_valid(char path[STR_MAX]);
 
 /**
  * Initialize the network configuration from CLI parameters or fichier .config.
- * - Si `PARAM_REMOTE_CONFIG` est donné ou qu'un fichier `.config` existe
- *   dans le répertoire courant, le fichier est validé et chargé (via
- *   `config_load`).
- * - Sinon construit une `remote_config` minimale à partir des paramètres
- *   `-l/-s/-u/-p/-t/-P`.
  * @param parameters Pointeur vers le tableau de paramètres CLI.
  * @param params_count Nombre d'éléments dans le tableau.
  * @return 0 on success, -1 on error.
@@ -83,14 +69,6 @@ int network_init(parameters_table *parameters, int params_count);
  * @return Number of processes on success, -1 on error.
  */
 int network_get_processes_ssh(remote_config *config, process_info **out_processes);
-
-/**
- * Establish Telnet connection and retrieve process list from a remote machine.
- * @param config Pointer to remote_config structure.
- * @param out_processes Pointer to array of process_info (must be freed by caller).
- * @return Number of processes on success, -1 on error.
- */
-int network_get_processes_telnet(remote_config *config, process_info **out_processes);
 
 /**
  * Poll remote processes from all configured remote machines.

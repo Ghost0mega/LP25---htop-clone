@@ -20,14 +20,12 @@ int config_load(const char *path) {
         return -1;
     }
 
-    /* Libère les configs précédentes si présentes */
     if (g_remote_configs) {
         free(g_remote_configs);
         g_remote_configs = NULL;
         g_remote_configs_count = 0;
     }
 
-    /* Compter les lignes valides d'abord */
     char line[STR_MAX];
     int line_count_total = 0;
     while (fgets(line, sizeof(line), f)) {
@@ -43,7 +41,6 @@ int config_load(const char *path) {
         return -1;
     }
 
-    /* Allouer le tableau de configs */
     g_remote_configs = calloc(line_count_total, sizeof(remote_config));
     if (!g_remote_configs) {
         fprintf(stderr, "ERROR: Failed to allocate memory for configs\n");
@@ -51,7 +48,6 @@ int config_load(const char *path) {
         return -1;
     }
 
-    /* Revenir au début du fichier */
     rewind(f);
 
     int line_no = 0;
@@ -63,28 +59,26 @@ int config_load(const char *path) {
         if (len > 0 && line[len-1] == '\n') line[len-1] = '\0';
         if (strlen(line) == 0) continue;
 
-        /* Copie de la ligne pour tokenisation */
         char copy[STR_MAX];
         strncpy(copy, line, STR_MAX-1);
         copy[STR_MAX-1] = '\0';
 
-        /* Découpage en champs séparés par ':' */
-        char *fields[6] = {0};
+        // Now expecting 5 fields instead of 6: name:address:port:username:password
+        char *fields[5] = {0};
         char *tok = strtok(copy, ":");
         int i = 0;
-        while (tok && i < 6) {
+        while (tok && i < 5) {
             fields[i++] = tok;
             tok = strtok(NULL, ":");
         }
-        if (i != 6) {
-            fprintf(stderr, "ERROR: Bad format in config %s at line %d\n", path, line_no);
+        if (i != 5) {
+            fprintf(stderr, "ERROR: Bad format in config %s at line %d (expected 5 fields)\n", path, line_no);
             free(g_remote_configs);
             g_remote_configs = NULL;
             fclose(f);
             return -1;
         }
 
-        /* Remplir la structure remote_config */
         remote_config *cfg = &g_remote_configs[config_idx];
         
         strncpy(cfg->name, fields[0], sizeof(cfg->name)-1);
@@ -100,28 +94,9 @@ int config_load(const char *path) {
         
         strncpy(cfg->password, fields[4], sizeof(cfg->password)-1);
         cfg->password[sizeof(cfg->password)-1] = '\0';
-        
-        /* Déterminer le type de connexion */
-        char type_upper[16];
-        strncpy(type_upper, fields[5], sizeof(type_upper)-1);
-        type_upper[sizeof(type_upper)-1] = '\0';
-        strupper(type_upper);
-        
-        if (strcmp(type_upper, "SSH") == 0) {
-            cfg->type = CONN_SSH;
-        } else if (strcmp(type_upper, "TELNET") == 0) {
-            cfg->type = CONN_TELNET;
-        } else {
-            fprintf(stderr, "ERROR: Invalid connection type at line %d\n", line_no);
-            free(g_remote_configs);
-            g_remote_configs = NULL;
-            fclose(f);
-            return -1;
-        }
 
-        printf("Config[%d]: name=%s addr=%s port=%d user=%s type=%s\n",
-               config_idx+1, cfg->name, cfg->address, cfg->port, cfg->username, 
-               (cfg->type == CONN_SSH) ? "SSH" : "TELNET");
+        printf("Config[%d]: name=%s addr=%s port=%d user=%s type=SSH\n",
+               config_idx+1, cfg->name, cfg->address, cfg->port, cfg->username);
         
         config_idx++;
     }
