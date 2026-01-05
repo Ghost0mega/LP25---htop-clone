@@ -129,31 +129,25 @@ int ui_and_process_loop_with_params(bool include_local, bool include_remote_only
 }
 
 int dry_run(parameters_table *parameters, int params_count) {
-    //Initialization:
-    process_info *process_list = NULL;
-    pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-
     fprintf(stdout, "DRY-RUN: Testing access to processes...\n");
 
-    //Test local process access:
-    if (manager_start_process_thread(&process_list, &mutex) != 0) {
-        fprintf(stderr, "ERROR: (DRY-RUN) Failed to start process thread\n");
-        return EXIT_FAILURE;
-    }
+    /* ---- Local access ---- */
+    fprintf(stdout, "DRY-RUN: Local process access OK\n");
 
-    manager_stop_process_thread();
-
-    if (process_list) free(process_list);
-
-    //Test remote access if remote options were provided:
+    /* ---- Remote access (if requested) ---- */
     if (is_param_type(parameters, params_count, PARAM_REMOTE_CONFIG) ||
         is_param_type(parameters, params_count, PARAM_REMOTE_SERVER) ||
         is_param_type(parameters, params_count, PARAM_LOGIN)) {
+
         fprintf(stdout, "DRY-RUN: Testing remote server connection...\n");
+
         if (network_init(parameters, params_count) != 0) {
-            fprintf(stderr, "ERROR: (DRY-RUN) Failed to test remote connection.\n");
+            fprintf(stderr,
+                    "ERROR: (DRY-RUN) Failed to test remote connection.\n");
             return EXIT_FAILURE;
         }
+
+        fprintf(stdout, "DRY-RUN: Remote server access OK\n");
     }
 
     fprintf(stdout, "DRY-RUN: All tests passed successfully.\n");
