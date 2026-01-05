@@ -55,7 +55,7 @@ dkms.conf
 *.dwo
 
 #bin
-./bin/
+bin/htop-clone
 
 #IDE
 .vscode/

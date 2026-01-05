@@ -4,51 +4,44 @@
 * METHODS: *
 ==========*/
 
-int manage_arguments(int argc, char *argv[]) {
-    //Control of the parameters:
-    parameters_table given_parameters[PARAMETER_BUFFER_SIZE]; //parameters received by the user.
-    parameters_table default_parameters[] = { //Default parameters.
-        {.parameter_type = PARAM_HELP, .parameter_value.flag_param = false},
-        {.parameter_type = PARAM_DRY_RUN, .parameter_value.flag_param = false},
-        {.parameter_type = PARAM_REMOTE_CONFIG, .parameter_value.str_param = "./config/remote.txt"}, // /!\: Reste à définir un chemin par défaut pour la configuration réseau
-        {.parameter_type = PARAM_CONNEXION_TYPE, .parameter_value.str_param = "local"}, //By default the programm run on the local machine.
-        {.parameter_type = PARAM_PORT, .parameter_value.int_param = 0}, // /!\: Reste à définir un port local.
-        {.parameter_type = PARAM_LOGIN, .parameter_value.str_param = ""}, // /!\: Reste à définir un login par défaut.
-        {.parameter_type = PARAM_REMOTE_SERVER, .parameter_value.str_param = "localhost"}, // /!\: Reste à définir un serveur par défaut.
-        {.parameter_type = PARAM_USERNAME, .parameter_value.str_param = ""},
-        {.parameter_type = PARAM_PASSWORD, .parameter_value.str_param = ""},
-        {.parameter_type = PARAM_ALL, .parameter_value.flag_param = false},
-    };
-    int parameters_count = 0, default_parameters_count = sizeof(default_parameters) / sizeof(parameters_table), opt = 0;
+parameters_table *manage_arguments(int argc, char *argv[], int *out_count) {
+    int parameters_count=0;
+    int opt;
 
-    //Define the accpeted arguments:
+    if (!out_count) return NULL;
+
+    parameters_table *given_parameters = calloc(PARAMETER_BUFFER_SIZE, sizeof(parameters_table));
+    if (!given_parameters) return NULL;
+
     struct option my_opts[] = {
         {.name = "help", .has_arg = 0, .flag = 0, .val = 'h'},
         {.name = "dry-run", .has_arg = 0, .flag = 0, .val = 1},
         {.name = "remote-config", .has_arg = 1, .flag = 0, .val = 'c'},
-        {.name = "connexion-type", .has_arg = 1, .flag = 0, .val = 't'},
         {.name = "port", .has_arg = 1, .flag = 0, .val = 'P'},
         {.name = "login", .has_arg = 1, .flag = 0, .val = 'l'},
         {.name = "remote-server", .has_arg = 1, .flag = 0, .val = 's'},
         {.name = "username", .has_arg = 1, .flag = 0, .val = 'u'},
         {.name = "password", .has_arg = 1, .flag = 0, .val = 'p'},
         {.name = "all", .has_arg = 0, .flag = 0, .val = 'a'},
+        {.name = "connexion-type", .has_arg = 1, .flag = 0, .val = 't'},
         {0, 0, 0, 0}
     };
 
-    //Do the modification of the arguments:
-    while((opt = getopt_long(argc, argv, "hdc:t:P:l:s:u:p:a", my_opts, NULL)) != -1) {
-        switch (opt){
+    while ((opt = getopt_long(argc, argv, "hdc:P:l:s:u:p:at:", my_opts, NULL)) != -1) {
 
-            //Return the manual of the programm:
+        if (parameters_count >= PARAMETER_BUFFER_SIZE) {
+            fprintf(stderr, "ERROR: Too many parameters\n");
+            free(given_parameters);
+            return NULL;
+        }
+
+        switch (opt) {
             case 'h':
                 given_parameters[parameters_count].parameter_type = PARAM_HELP;
                 given_parameters[parameters_count].parameter_value.flag_param = true;
                 parameters_count++;
-                manual();
-                return 1;
                 break;
-            
+        
             case 1:
                 given_parameters[parameters_count].parameter_type = PARAM_DRY_RUN;
                 given_parameters[parameters_count].parameter_value.flag_param = true;
@@ -57,13 +50,8 @@ int manage_arguments(int argc, char *argv[]) {
 
             case 'c':
                 given_parameters[parameters_count].parameter_type = PARAM_REMOTE_CONFIG;
-                strcpy(given_parameters[parameters_count].parameter_value.str_param, optarg);
-                parameters_count++;
-                break;
-
-            case 't':
-                given_parameters[parameters_count].parameter_type = PARAM_CONNEXION_TYPE;
-                strcpy(given_parameters[parameters_count].parameter_value.str_param, optarg);
+                strncpy(given_parameters[parameters_count].parameter_value.str_param, optarg, STR_MAX-1);
+                given_parameters[parameters_count].parameter_value.str_param[STR_MAX-1] = '\0';
                 parameters_count++;
                 break;
 
@@ -75,25 +63,29 @@ int manage_arguments(int argc, char *argv[]) {
 
             case 'l':
                 given_parameters[parameters_count].parameter_type = PARAM_LOGIN;
-                strcpy(given_parameters[parameters_count].parameter_value.str_param, optarg);
+                strncpy(given_parameters[parameters_count].parameter_value.str_param, optarg, STR_MAX-1);
+                given_parameters[parameters_count].parameter_value.str_param[STR_MAX-1] = '\0';
                 parameters_count++;
                 break;
 
             case 's':
                 given_parameters[parameters_count].parameter_type = PARAM_REMOTE_SERVER;
-                strcpy(given_parameters[parameters_count].parameter_value.str_param, optarg);
+                strncpy(given_parameters[parameters_count].parameter_value.str_param, optarg, STR_MAX-1);
+                given_parameters[parameters_count].parameter_value.str_param[STR_MAX-1] = '\0';
                 parameters_count++;
                 break;
 
             case 'u':
                 given_parameters[parameters_count].parameter_type = PARAM_USERNAME;
-                strcpy(given_parameters[parameters_count].parameter_value.str_param, optarg);
+                strncpy(given_parameters[parameters_count].parameter_value.str_param, optarg, STR_MAX-1);
+                given_parameters[parameters_count].parameter_value.str_param[STR_MAX-1] = '\0';
                 parameters_count++;
                 break;
 
             case 'p':
                 given_parameters[parameters_count].parameter_type = PARAM_PASSWORD;
-                strcpy(given_parameters[parameters_count].parameter_value.str_param, optarg);
+                strncpy(given_parameters[parameters_count].parameter_value.str_param, optarg, STR_MAX-1);
+                given_parameters[parameters_count].parameter_value.str_param[STR_MAX-1] = '\0';
                 parameters_count++;
                 break;
 
@@ -103,110 +95,202 @@ int manage_arguments(int argc, char *argv[]) {
                 parameters_count++;
                 break;
 
+            case 't':
+                given_parameters[parameters_count].parameter_type = PARAM_CONNECTION_TYPE;
+                strncpy(given_parameters[parameters_count].parameter_value.str_param, optarg, STR_MAX-1);
+                given_parameters[parameters_count].parameter_value.str_param[STR_MAX-1] = '\0';
+                parameters_count++;
+                break;
+
             case '?':
-                printf("Invalid Arguments\n");
+                fprintf(stderr,"ERROR: Invalid Arguments\n");
                 break;
 
             default:
-                printf("Local mode\n");
+                fprintf(stderr, "ERROR: Invalid argument\n");
+                free(given_parameters);
+                return NULL;
                 break;
         }
     }
 
-    //Validate the final parameters:
-    if (!params_validate(given_parameters, parameters_count)) return EXIT_FAILURE;
+    if (!params_validate(given_parameters, parameters_count)) {
+        free(given_parameters);
+        return NULL;
+    }
 
-    return 0;
+    *out_count = parameters_count;
+    return given_parameters;
 }
 
 bool params_validate(parameters_table *params, int params_count) {
-    //Initialization:
-    bool local_mode = true;
+    bool has_config_file = false;
+    bool has_login = false;
+    bool has_remote_server = false;
+    bool has_all_flag = false;
 
-    //Verifying if we are in local mode:
     for (int i = 0; i < params_count; i++) {
-        if (params[i].parameter_type == PARAM_CONNEXION_TYPE && strcmp(params[i].parameter_value.str_param, "local") != 0) {
-            local_mode = false;
+        if (params[i].parameter_type == PARAM_ALL) {
+            has_all_flag = true;
             break;
         }
     }
+    
+    // Validation de l'option -a/--all : nécessite -c ou -s
+    if (has_all_flag) {
+        bool has_config_or_server = false;
+        for (int i = 0; i < params_count; i++) {
+            if (params[i].parameter_type == PARAM_REMOTE_CONFIG || 
+                params[i].parameter_type == PARAM_REMOTE_SERVER ||
+                params[i].parameter_type == PARAM_LOGIN) {
+                has_config_or_server = true;
+                break;
+            }
+        }
+        if (!has_config_or_server) {
+            fprintf(stderr, "ERROR: Option -a/--all requires -c/--remote-config, -s/--remote-server, or -l/--login.\n");
+            return false;
+        }
+    }
 
-    //Validation foreach parameters which takes values:
     for (int i=0; i<params_count; i++) {
-        //Current parameter: (equivalent to the foreach in other languages)
         parameters_table *param = &params[i];
 
-        printf("%d\n",i);
-        //Rules for each type of parameters:
         switch(param->parameter_type) {
             default:
                 break;
 
             case PARAM_REMOTE_CONFIG:
-                //The parameters isn't valid if it is null, or the user cannot acess the given path.
                 if (strlen(param->parameter_value.str_param) == 0) {
-                    printf("C\n");
                     return false;
                 } else {
                     if (access(param->parameter_value.str_param, R_OK) != 0) {
-                        fprintf(stderr,"ERREUR: Impossible d'accéder au fihcier de configuration réseau.\n");
+                        fprintf(stderr,"ERROR: Cannot access the configuration file.\n");
+                        return false;
+                    }
+                    if (!is_config_file_valid(param->parameter_value.str_param)) {
+                        fprintf(stderr,"ERROR: Follow this format for the configuration file:\nserver_name1:server_adress:port:username:password\nserver_name2:server_adress:port:username:password\n");
                         return false;
                     }
                 }
+                has_config_file = true;
                 break;
 
             case PARAM_PORT:
-                //Tested only if the program isn't for a local use:
-                if (!local_mode) {
-                    //The parameters isn't correct if the value is less than 1024 or bigger than 65535:
-                    if ((param->parameter_value.int_param < 1024) || (param->parameter_value.int_param > 65535)) {
-                        fprintf(stderr,"ERREUR: Le port doit être dans compris entre 1024 et 65535.\n");
+                if (!has_config_file) {
+                    if ((param->parameter_value.int_param < 1) || (param->parameter_value.int_param > 65535)) {
+                        fprintf(stderr,"ERROR: Please enter a port value between 1 and 65535.\n");
                         return false;
-                    } else {
-                        //We verify that the port is free:
-                        if(!is_port_free(param->parameter_value.int_param)) return false;
-                        fprintf(stderr,"ERREUR: Le port sélectionner est déjà utilisé.\n");
                     }
                 }
                 break;
 
             case PARAM_LOGIN:
-                //Tested only if the program isn't for a local use:
-                if (!local_mode) {
-                    //fill with the conditions
+                if (!has_config_file) {
+                    if (strlen(param->parameter_value.str_param) == 0) {
+                        fprintf(stderr, "ERROR: Login cannot be empty.\n");
+                        return false;
+                    }
+                    char *at_sign = strchr(param->parameter_value.str_param, '@');
+                    if (at_sign == NULL) {
+                        fprintf(stderr, "ERROR: Login must be in the format user@server.\n");
+                        return false;
+                    }
+                    has_login = true;
                 }
                 break;
-                        
+                
             case PARAM_REMOTE_SERVER:
-                //Tested only if the program isn't for a local use:
-                if (!local_mode) {
-                    //fill with the conditions
+                if (!has_config_file) {
+                    if (strlen(param->parameter_value.str_param) == 0) {
+                        fprintf(stderr, "ERROR: Remote server address cannot be empty.\n");
+                        return false;
+                    }
+                    if (has_login) {
+                        fprintf(stderr, "ERROR: Cannot use both -l/--login and -s/--remote-server.\n");
+                        return false;
+                    }
+                    has_remote_server = true;
                 }
                 break;
 
             case PARAM_USERNAME:
-                //Tested only if the program isn't for a local use:
-                if (!local_mode) {
-                    //fill with the conditions
+                if (!has_config_file) {
+                    if (strlen(param->parameter_value.str_param) == 0) {
+                        fprintf(stderr, "ERROR: Username cannot be empty.\n");
+                        return false;
+                    }
+                    if (has_login) {
+                        fprintf(stderr, "ERROR: Cannot use both -l/--login and -u/--username.\n");
+                        return false;
+                    }
                 }
                 break;
                 
             case PARAM_PASSWORD:
-                //Tested only if the program isn't for a local use:
-                if (!local_mode) {
-                    //fill with the conditions
+                if (!has_config_file) {
+                    if (strlen(param->parameter_value.str_param) == 0) {
+                        fprintf(stderr, "ERROR: Password cannot be empty.\n");
+                        return false;
+                    }
                 }
                 break;
-            }
-        }
 
-    //If nothing goes wrong we return true:
+            case PARAM_CONNECTION_TYPE:
+                if (strlen(param->parameter_value.str_param) == 0) {
+                    fprintf(stderr, "ERROR: Connection type cannot be empty.\n");
+                    return false;
+                }
+                // Convertir en minuscules pour la comparaison
+                char type_lower[STR_MAX];
+                strncpy(type_lower, param->parameter_value.str_param, STR_MAX-1);
+                type_lower[STR_MAX-1] = '\0';
+                for (int j = 0; type_lower[j]; j++) {
+                    type_lower[j] = tolower(type_lower[j]);
+                }
+                // Seul SSH est supporté pour le moment
+                if (strcmp(type_lower, "ssh") != 0) {
+                    fprintf(stderr, "ERROR: Connection type '%s' is not supported. Only 'ssh' is currently implemented.\n", 
+                            param->parameter_value.str_param);
+                    return false;
+                }
+                break;
+        }
+    }
+
     return true;
 }
 
-bool is_port_free(int port) {
-    //à remplir avec les besoin reseaux, quand on sera là
-    return false;
+bool is_param_type(parameters_table *params, int params_count, parameters_id_table type) {
+    bool found = false;
+
+    for (int i = 0; i < params_count; i++) {
+        if (params[i].parameter_type == type) {
+            found = true;
+            break;
+        }
+    }
+
+    return found;
+}
+
+int get_int_parameters(parameters_table *params, int params_count, parameters_id_table type) {
+    for (int i = 0; i < params_count; i++) {
+        if (params[i].parameter_type == type) {
+            return params[i].parameter_value.int_param;
+        }
+    }
+    return -1;
+}
+
+int get_string_parameters(parameters_table *params, int params_count, parameters_id_table type, char *string) {
+    for (int i = 0; i < params_count; i++) {
+        if (params[i].parameter_type == type) {
+            strcpy(string, params[i].parameter_value.str_param);
+            return 0;
+        }
+    }
+    return 1;
 }
 
 void manual() {
@@ -214,14 +298,15 @@ void manual() {
     printf(COLOR_BOLD "SYNOPSIS\n" COLOR_OFF "\t[OPTIONS] arguments...\n\n");
     printf(COLOR_BOLD "DESCRIPTION\n" COLOR_OFF "\tShow all the process in an interactive table in real time.\n\n");
     printf(COLOR_BOLD "OPTION\n" COLOR_OFF);
-    printf("\t-h --help\tPrint the manual in the terminal.\n");
-    printf("\t-d --dry-run\tTest access to the list of processes on the local and/or remote machine without displaying them.\n");
-    printf("\t-c --remote-config\tSpecifies the path to the configuration file containing the connection information on remote machines.\n");
-    printf("\t-t --connexion-type\tSpecifies the type of connection to use for connection on remote machines (ssh, telnet).\n");
-    printf("\t-P --port\tSpecifies the port to use for the chosen connection type. If this option is not specified, then the default port of the connection type is chosen.\n");
-    printf("\t-l --login\tSpecifies the connection identifier and the remote machine. Ex : --login user@remote_server. remote_server is either the IP or the DNS name of the remote machine.\n");
+    printf("\t-h --help\t\tPrint the manual in the terminal.\n");
+    printf("\t-d --dry-run\t\tTest access to the list of processes on the local and/or remote machine without displaying them.\n");
+    printf("\t-c --remote-config\tSpecifies the path to the configuration file containing the SSH connection information on remote machines.\n");
+    printf("\t\t\t\tFormat: name:address:port:username:password:connection_type (ssh or telnet)\n");
+    printf("\t-P --port\t\tSpecifies the SSH port to use. If this option is not specified, the default port 22 is used.\n");
+    printf("\t-l --login\t\tSpecifies the connection identifier and the remote machine. Ex : --login user@remote_server. remote_server is either the IP or the DNS name of the remote machine.\n");
     printf("\t-s --remote-server\tSpecifies the DNS name or IP of the remote machine.\n");
-    printf("\t-u --username\tSpecifies the username to use for the connection.\n");
-    printf("\t-p --password\tSpecifies the password to use for the connection.\n");
-    printf("\t-a --all\tSpecifies to the program to collect both the list of processes on the local machine and remote machines. Used only if the -c or -s option is used.\n");
+    printf("\t-u --username\t\tSpecifies the username to use for the SSH connection.\n");
+    printf("\t-p --password\t\tSpecifies the password to use for the SSH connection.\n");
+    printf("\t-t --connexion-type\tSpecifies the connection type to use for remote machines (ssh, telnet). Only 'ssh' is currently implemented.\n");
+    printf("\t-a --all\t\tSpecifies to the program to collect both the list of processes on the local machine and remote machines. Used only if the -c, -s, or -l option is used.\n");
 }
