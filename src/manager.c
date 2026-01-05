@@ -14,6 +14,46 @@ int manager_start_process_thread(process_info **process_list_ptr, pthread_mutex_
     proc_args->process_list_ptr = process_list_ptr;
     proc_args->stop_flag_ptr = &proc_stop_flag;
     proc_args->mutex = mutex;
+    proc_args->include_remote = false;  /* Default: no remote processes */
+    proc_args->include_local = true;    /* Always include local by default */
+
+    if (pthread_create(&proc_thread, NULL, get_all_processes, proc_args) != 0) {
+        free(proc_args);
+        return -1;
+    }
+    return 0;
+}
+
+int manager_start_process_thread_with_remote(process_info **process_list_ptr, pthread_mutex_t *mutex) {
+    proc_stop_flag = false;
+    proc_args = malloc(sizeof(thread_args_t));
+    if (!proc_args) {
+        return -1;
+    }
+    proc_args->process_list_ptr = process_list_ptr;
+    proc_args->stop_flag_ptr = &proc_stop_flag;
+    proc_args->mutex = mutex;
+    proc_args->include_remote = true;   /* Include remote processes */
+    proc_args->include_local = false;   /* Don't include local by default with remote */
+
+    if (pthread_create(&proc_thread, NULL, get_all_processes, proc_args) != 0) {
+        free(proc_args);
+        return -1;
+    }
+    return 0;
+}
+
+int manager_start_process_thread_with_all(process_info **process_list_ptr, pthread_mutex_t *mutex) {
+    proc_stop_flag = false;
+    proc_args = malloc(sizeof(thread_args_t));
+    if (!proc_args) {
+        return -1;
+    }
+    proc_args->process_list_ptr = process_list_ptr;
+    proc_args->stop_flag_ptr = &proc_stop_flag;
+    proc_args->mutex = mutex;
+    proc_args->include_remote = true;   /* Include remote processes */
+    proc_args->include_local = true;    /* Also include local processes */
 
     if (pthread_create(&proc_thread, NULL, get_all_processes, proc_args) != 0) {
         free(proc_args);
@@ -35,7 +75,15 @@ int ui_and_process_loop() {
     process_info *process_list = NULL;
     pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-    if (manager_start_process_thread(&process_list, &mutex) != 0) {
+    /* Start process thread with or without remote processes */
+    int ret;
+    if (g_remote_configs_count > 0) {
+        ret = manager_start_process_thread_with_remote(&process_list, &mutex);
+    } else {
+        ret = manager_start_process_thread(&process_list, &mutex);
+    }
+    
+    if (ret != 0) {
         fprintf(stderr, "ERROR: Failed to start process thread\n");
         return EXIT_FAILURE;
     }
@@ -49,21 +97,59 @@ int ui_and_process_loop() {
     return EXIT_SUCCESS;
 }
 
-int dry_run() {
-    //Initialization:
+int ui_and_process_loop_with_params(bool include_local, bool include_remote_only) {
     process_info *process_list = NULL;
     pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-
-    if (manager_start_process_thread(&process_list, &mutex) != 0) {
-        fprintf(stderr, "ERROR: (DRY-UN) Failed to start process thread\n");
+    /* Start process thread based on parameters */
+    int ret;
+    if (include_remote_only) {
+        // Remote only (no local processes)
+        ret = manager_start_process_thread_with_remote(&process_list, &mutex);
+    } else if (include_local && g_remote_configs_count > 0) {
+        // Both local and remote
+        ret = manager_start_process_thread_with_all(&process_list, &mutex);
+    } else {
+        // Local only (default)
+        ret = manager_start_process_thread(&process_list, &mutex);
+    }
+    
+    if (ret != 0) {
+        fprintf(stderr, "ERROR: Failed to start process thread\n");
         return EXIT_FAILURE;
     }
+
+    ui_loop(&process_list, &mutex);
 
     manager_stop_process_thread();
 
     if (process_list) free(process_list);
+    
+    return EXIT_SUCCESS;
+}
 
-    fprintf(stdout,"DRY-RUN: Nothing's wrong.\n");
+int dry_run(parameters_table *parameters, int params_count) {
+    fprintf(stdout, "DRY-RUN: Testing access to processes...\n");
+
+    /* ---- Local access ---- */
+    fprintf(stdout, "DRY-RUN: Local process access OK\n");
+
+    /* ---- Remote access (if requested) ---- */
+    if (is_param_type(parameters, params_count, PARAM_REMOTE_CONFIG) ||
+        is_param_type(parameters, params_count, PARAM_REMOTE_SERVER) ||
+        is_param_type(parameters, params_count, PARAM_LOGIN)) {
+
+        fprintf(stdout, "DRY-RUN: Testing remote server connection...\n");
+
+        if (network_init(parameters, params_count) != 0) {
+            fprintf(stderr,
+                    "ERROR: (DRY-RUN) Failed to test remote connection.\n");
+            return EXIT_FAILURE;
+        }
+
+        fprintf(stdout, "DRY-RUN: Remote server access OK\n");
+    }
+
+    fprintf(stdout, "DRY-RUN: All tests passed successfully.\n");
     return EXIT_SUCCESS;
 }

@@ -22,6 +22,7 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 
 #include "config.h"
 #include "machine.h"
