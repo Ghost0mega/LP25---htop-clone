@@ -169,7 +169,7 @@ bool params_validate(parameters_table *params, int params_count) {
                         return false;
                     }
                     if (!is_config_file_valid(param->parameter_value.str_param)) {
-                        fprintf(stderr,"ERROR: Follow this format for the configuration file:\nserver_name1:server_adress:port:username:password\nserver_name2:server_adress:port:username:password\n");
+                        fprintf(stderr,"ERROR: Follow this format for the configuration file:\nserver_name1:server_adress:port:username:password:connexiontype\n");
                         return false;
                     }
                 }

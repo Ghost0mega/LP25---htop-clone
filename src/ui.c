@@ -264,8 +264,8 @@ void ui_loop(process_info **process_list_ptr, pthread_mutex_t *mutex) {
         case 0: printw("[Total]"); break;
         case 1: printw("[Processus]"); break;
         case 2: printw("[CPU]"); break;
-        case 3: printw("[Mémoire]"); break;
-        case 4: printw("[Réseau]"); break;
+        case 3: printw("[Memoire]"); break;
+        case 4: printw("[Reseau]"); break;
       }
       if (t == tab) {
         attroff(A_REVERSE);
@@ -350,7 +350,7 @@ void ui_loop(process_info **process_list_ptr, pthread_mutex_t *mutex) {
             char send_str[16], recv_str[16];
             format_bytes(plist[i].net_send_rate, send_str, sizeof(send_str));
             format_bytes(plist[i].net_recv_rate, recv_str, sizeof(recv_str));
-            wprintw(listwin, "%6d  ↑ %s/s  ↓ %s/s\n", plist[i].pid, send_str, recv_str);
+            wprintw(listwin, "%6d Up:%s/s Down:%s/s\n", plist[i].pid, send_str, recv_str);
             break;
           }
         }
