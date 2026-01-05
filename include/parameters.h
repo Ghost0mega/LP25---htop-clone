@@ -21,6 +21,7 @@ typedef enum {
     PARAM_USERNAME,
     PARAM_PASSWORD,
     PARAM_ALL,
+    PARAM_CONNECTION_TYPE,
 } parameters_id_table;
 
 typedef union {

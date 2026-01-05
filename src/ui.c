@@ -1,5 +1,6 @@
 #include "../include/project.h"
 #include <signal.h>
+#include <locale.h>
 
 /*
 ui_loop - boucle principale de l'interface utilisateur ncurses
@@ -14,6 +15,19 @@ Comportement principal :
 - Affiche différentes vues selon l'onglet sélectionné (tab).
 - Nettoie proprement ncurses à la sortie.
 */
+
+// Fonction pour formater les octets en unités lisibles
+void format_bytes(float bytes, char *buffer, size_t buffer_size) {
+    if (bytes < 1024) {
+        snprintf(buffer, buffer_size, "%.0f B", bytes);
+    } else if (bytes < 1024 * 1024) {
+        snprintf(buffer, buffer_size, "%.2f KB", bytes / 1024.0);
+    } else if (bytes < 1024 * 1024 * 1024) {
+        snprintf(buffer, buffer_size, "%.2f MB", bytes / (1024.0 * 1024.0));
+    } else {
+        snprintf(buffer, buffer_size, "%.2f GB", bytes / (1024.0 * 1024.0 * 1024.0));
+    }
+}
 
 // Fonction pour rechercher un processus par nom ou PID
 int search_process(process_info *plist, size_t count, const char *search_term) {
@@ -179,8 +193,10 @@ void ui_loop(process_info **process_list_ptr, pthread_mutex_t *mutex) {
   int offset = 0; // index du premier processus affiché
   int tab = 0; // onglet courant dans le menu
   char key[512] = ""; // message texte récapitulant la dernière touche F détectée
+  long total_ram = get_total_ram_b(); // Récupérer la RAM totale une seule fois
 
   /* Initialisation de ncurses */
+  setlocale(LC_ALL, "");
   initscr(); // démarre le mode ncurses 
   noecho(); // n'affiche pas les touches saisies 
   cbreak(); // mode cbreak : saisie caractère par caractère 
@@ -274,14 +290,14 @@ void ui_loop(process_info **process_list_ptr, pthread_mutex_t *mutex) {
         switch (tab) {
           case 0: {
             if (plist == NULL || plist[i].pid == 0 || plist[i].name == NULL) break;
-            /* Onglet "Total" : affiche pid, nom tronqué, CPU, MEM et un emplacement pour info réseau */
             char state_char = (char)plist[i].state;
             char truncated_name[21];
             char ram_usage_str[16];
             char uptime_str[16];
-            /* On tronque/formatte proprement le nom du processus */
+            char net_info_str[32];
+            
             snprintf(truncated_name, sizeof(truncated_name), "%-20.20s", plist[i].name);
-            /* On formate l'usage mémoire en Ko/Mo/Go */
+            
             if (plist[i].mem_usage < 1024) {
               snprintf(ram_usage_str, sizeof(ram_usage_str), "%lu B", plist[i].mem_usage);
             } else if (plist[i].mem_usage < 1024 * 1024) {
@@ -291,7 +307,7 @@ void ui_loop(process_info **process_list_ptr, pthread_mutex_t *mutex) {
             } else {
               snprintf(ram_usage_str, sizeof(ram_usage_str), "%.2f GB", plist[i].mem_usage / (1024.0 * 1024.0 * 1024.0));
             }
-            /* On formate le uptime en secondes/minutes/heures */
+            
             long uptime = plist[i].uptime;
             if (uptime < 60) {
               snprintf(uptime_str, sizeof(uptime_str), "%ld s", uptime);
@@ -303,28 +319,40 @@ void ui_loop(process_info **process_list_ptr, pthread_mutex_t *mutex) {
               long seconds = uptime % 60;
               snprintf(uptime_str, sizeof(uptime_str), "%ld:%02ld:%02ld", hours, minutes, seconds);
             }
-            /* Affichage final de la ligne */
-            wprintw(listwin, "%6d \t%-20s \t%c \t%6.2f%% \t%8s \t%7s \t(net-info)\n",
+            
+            char send_str[16], recv_str[16];
+            format_bytes(plist[i].net_send_rate, send_str, sizeof(send_str));
+            format_bytes(plist[i].net_recv_rate, recv_str, sizeof(recv_str));
+            snprintf(net_info_str, sizeof(net_info_str), "Up:%s/s Down:%s/s", send_str, recv_str);
+            
+            wprintw(listwin, "%6d \t%-20s \t%c \t%6.2f%% \t%8s \t%7s \t%s\n",
                     plist[i].pid, truncated_name, state_char,
-                    plist[i].cpu_usage, ram_usage_str, uptime_str);
+                    plist[i].cpu_usage, ram_usage_str, uptime_str, net_info_str);
             break;
           }
           case 1:
-            /* Onglet "Processus" : liste simple pid + nom */
             wprintw(listwin, "%6d  %s\n", plist[i].pid, plist[i].name);
             break;
           case 2:
-            /* Onglet "CPU" : affiche pid et pourcentage CPU */
             wprintw(listwin, "%6d  CPU: %.1f%%\n", plist[i].pid, plist[i].cpu_usage);
             break;
-          case 3:
-            /* Onglet "Mémoire" : affiche pid et pourcentage mémoire */
-            wprintw(listwin, "%6d  MEM: %ld%%\n", plist[i].pid, plist[i].mem_usage);
+          case 3: {
+            float mem_percent = 0.0f;
+            if (total_ram > 0) {
+                mem_percent = ((float)plist[i].mem_usage / total_ram) * 100.0f;
+            }
+            char mem_size_str[16];
+            format_bytes((float)plist[i].mem_usage, mem_size_str, sizeof(mem_size_str));
+            wprintw(listwin, "%6d  MEM: %.2f%% (%s)\n", plist[i].pid, mem_percent, mem_size_str);
             break;
-          case 4:
-            /* Onglet "Réseau" : actuellement placeholder */
-            wprintw(listwin, "%6d  (Info réseau)\n", plist[i].pid);
+          }
+          case 4: {
+            char send_str[16], recv_str[16];
+            format_bytes(plist[i].net_send_rate, send_str, sizeof(send_str));
+            format_bytes(plist[i].net_recv_rate, recv_str, sizeof(recv_str));
+            wprintw(listwin, "%6d  ↑ %s/s  ↓ %s/s\n", plist[i].pid, send_str, recv_str);
             break;
+          }
         }
       } else {
         /* Si la liste n'existe pas, afficher un message d'erreur simple */

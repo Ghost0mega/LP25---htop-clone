@@ -166,8 +166,8 @@ bool is_config_file_valid(char path[STR_MAX]) {
         for (char *p = line; *p; p++) {
             if (*p == ':') colon_count++;
         }
-        if (colon_count != 4) {
-            fprintf(stderr, "ERROR: Line %d in config file has invalid format. Expected 5 fields (name:address:port:username:password).\n", line_count);
+        if (colon_count != 5) {
+            fprintf(stderr, "ERROR: Line %d in config file has invalid format. Expected 6 fields (name:address:port:username:password:connexiontype).\n", line_count);
             fclose(fptr);
             return false;
         }

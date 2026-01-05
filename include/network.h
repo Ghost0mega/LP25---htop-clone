@@ -14,12 +14,19 @@ typedef struct parameters_table parameters_table;
 *  TYPES:  *
 ==========*/
 
+typedef enum {
+    CONNECTION_TYPE_SSH,
+    CONNECTION_TYPE_TELNET,
+    CONNECTION_TYPE_UNKNOWN
+} connection_type_t;
+
 typedef struct remote_config {
     char name[64];
     char address[128];
     int port;
     char username[64];
     char password[64];
+    connection_type_t connection_type;
 } remote_config;
 
 /* Global array to store remote configurations */
@@ -49,7 +56,7 @@ bool is_port_free(int port);
 
 /**
  * Return true if the given file match this schema:
- * server_name1:server_adress:port:username:password
+ * server_name1:server_adress:port:username:password:connection_type
  * @param path File's path
  */
 bool is_config_file_valid(char path[STR_MAX]);
@@ -88,5 +95,19 @@ void network_poll(void);
  * @return 0 on success, -1 on failure.
  */
 int network_kill_process(int config_index, int pid, int signal);
+
+/**
+ * Convert string to connection_type_t enum.
+ * @param type_str String representation of connection type.
+ * @return connection_type_t enum value.
+ */
+connection_type_t parse_connection_type(const char *type_str);
+
+/**
+ * Convert connection_type_t enum to string.
+ * @param type Connection type enum.
+ * @return String representation of connection type.
+ */
+const char* connection_type_to_string(connection_type_t type);
 
 #endif /* NETWORK_H */

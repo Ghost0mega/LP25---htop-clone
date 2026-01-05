@@ -30,6 +30,12 @@ typedef struct process_info {
   unsigned long cpu_stime;
   unsigned long starttime;
   int remote_config_index;  // -1 pour local, sinon index dans g_remote_configs
+  
+  // Nouveaux champs pour les statistiques réseau
+  unsigned long long net_bytes_sent;     // Total octets envoyés
+  unsigned long long net_bytes_recv;     // Total octets reçus
+  float net_send_rate;                   // Débit d'envoi (octets/sec)
+  float net_recv_rate;                   // Débit de réception (octets/sec)
 } process_info;
 
 typedef struct {
@@ -115,5 +121,14 @@ libéré par l'appelant avec free(). Renvoie le nombre d'entrées en cas de succ
 ou -1 en cas d'erreur.
  */
 int get_processes(process_info **out_list);
+
+/**
+ * Get network statistics for a process from /proc/[pid]/net/dev
+ * @param pid Process ID
+ * @param bytes_sent Pointer to store total bytes sent
+ * @param bytes_recv Pointer to store total bytes received
+ * @return 0 on success, -1 on failure
+ */
+int get_process_network_stats(int pid, unsigned long long *bytes_sent, unsigned long long *bytes_recv);
 
 #endif /* PROCESS_H */

@@ -23,10 +23,11 @@ parameters_table *manage_arguments(int argc, char *argv[], int *out_count) {
         {.name = "username", .has_arg = 1, .flag = 0, .val = 'u'},
         {.name = "password", .has_arg = 1, .flag = 0, .val = 'p'},
         {.name = "all", .has_arg = 0, .flag = 0, .val = 'a'},
+        {.name = "connexion-type", .has_arg = 1, .flag = 0, .val = 't'},
         {0, 0, 0, 0}
     };
 
-    while ((opt = getopt_long(argc, argv, "hdc:P:l:s:u:p:a", my_opts, NULL)) != -1) {
+    while ((opt = getopt_long(argc, argv, "hdc:P:l:s:u:p:at:", my_opts, NULL)) != -1) {
 
         if (parameters_count >= PARAMETER_BUFFER_SIZE) {
             fprintf(stderr, "ERROR: Too many parameters\n");
@@ -94,6 +95,13 @@ parameters_table *manage_arguments(int argc, char *argv[], int *out_count) {
                 parameters_count++;
                 break;
 
+            case 't':
+                given_parameters[parameters_count].parameter_type = PARAM_CONNECTION_TYPE;
+                strncpy(given_parameters[parameters_count].parameter_value.str_param, optarg, STR_MAX-1);
+                given_parameters[parameters_count].parameter_value.str_param[STR_MAX-1] = '\0';
+                parameters_count++;
+                break;
+
             case '?':
                 fprintf(stderr,"ERROR: Invalid Arguments\n");
                 break;
@@ -128,16 +136,19 @@ bool params_validate(parameters_table *params, int params_count) {
         }
     }
     
+    // Validation de l'option -a/--all : nécessite -c ou -s
     if (has_all_flag) {
         bool has_config_or_server = false;
         for (int i = 0; i < params_count; i++) {
-            if (params[i].parameter_type == PARAM_REMOTE_CONFIG || params[i].parameter_type == PARAM_REMOTE_SERVER) {
+            if (params[i].parameter_type == PARAM_REMOTE_CONFIG || 
+                params[i].parameter_type == PARAM_REMOTE_SERVER ||
+                params[i].parameter_type == PARAM_LOGIN) {
                 has_config_or_server = true;
                 break;
             }
         }
         if (!has_config_or_server) {
-            fprintf(stderr, "ERROR: Option -a/--all requires -c/--remote-config or -s/--remote-server.\n");
+            fprintf(stderr, "ERROR: Option -a/--all requires -c/--remote-config, -s/--remote-server, or -l/--login.\n");
             return false;
         }
     }
@@ -224,6 +235,26 @@ bool params_validate(parameters_table *params, int params_count) {
                     }
                 }
                 break;
+
+            case PARAM_CONNECTION_TYPE:
+                if (strlen(param->parameter_value.str_param) == 0) {
+                    fprintf(stderr, "ERROR: Connection type cannot be empty.\n");
+                    return false;
+                }
+                // Convertir en minuscules pour la comparaison
+                char type_lower[STR_MAX];
+                strncpy(type_lower, param->parameter_value.str_param, STR_MAX-1);
+                type_lower[STR_MAX-1] = '\0';
+                for (int j = 0; type_lower[j]; j++) {
+                    type_lower[j] = tolower(type_lower[j]);
+                }
+                // Seul SSH est supporté pour le moment
+                if (strcmp(type_lower, "ssh") != 0) {
+                    fprintf(stderr, "ERROR: Connection type '%s' is not supported. Only 'ssh' is currently implemented.\n", 
+                            param->parameter_value.str_param);
+                    return false;
+                }
+                break;
         }
     }
 
@@ -267,13 +298,15 @@ void manual() {
     printf(COLOR_BOLD "SYNOPSIS\n" COLOR_OFF "\t[OPTIONS] arguments...\n\n");
     printf(COLOR_BOLD "DESCRIPTION\n" COLOR_OFF "\tShow all the process in an interactive table in real time.\n\n");
     printf(COLOR_BOLD "OPTION\n" COLOR_OFF);
-    printf("\t-h --help\tPrint the manual in the terminal.\n");
-    printf("\t-d --dry-run\tTest access to the list of processes on the local and/or remote machine without displaying them.\n");
+    printf("\t-h --help\t\tPrint the manual in the terminal.\n");
+    printf("\t-d --dry-run\t\tTest access to the list of processes on the local and/or remote machine without displaying them.\n");
     printf("\t-c --remote-config\tSpecifies the path to the configuration file containing the SSH connection information on remote machines.\n");
-    printf("\t-P --port\tSpecifies the SSH port to use. If this option is not specified, the default port 22 is used.\n");
-    printf("\t-l --login\tSpecifies the connection identifier and the remote machine. Ex : --login user@remote_server. remote_server is either the IP or the DNS name of the remote machine.\n");
+    printf("\t\t\t\tFormat: name:address:port:username:password:connection_type (ssh or telnet)\n");
+    printf("\t-P --port\t\tSpecifies the SSH port to use. If this option is not specified, the default port 22 is used.\n");
+    printf("\t-l --login\t\tSpecifies the connection identifier and the remote machine. Ex : --login user@remote_server. remote_server is either the IP or the DNS name of the remote machine.\n");
     printf("\t-s --remote-server\tSpecifies the DNS name or IP of the remote machine.\n");
-    printf("\t-u --username\tSpecifies the username to use for the SSH connection.\n");
-    printf("\t-p --password\tSpecifies the password to use for the SSH connection.\n");
-    printf("\t-a --all\tSpecifies to the program to collect both the list of processes on the local machine and remote machines. Used only if the -c or -s option is used.\n");
+    printf("\t-u --username\t\tSpecifies the username to use for the SSH connection.\n");
+    printf("\t-p --password\t\tSpecifies the password to use for the SSH connection.\n");
+    printf("\t-t --connexion-type\tSpecifies the connection type to use for remote machines (ssh, telnet). Only 'ssh' is currently implemented.\n");
+    printf("\t-a --all\t\tSpecifies to the program to collect both the list of processes on the local machine and remote machines. Used only if the -c, -s, or -l option is used.\n");
 }
