@@ -171,8 +171,20 @@ int get_process_network_stats(int pid, unsigned long long *bytes_sent, unsigned 
     unsigned long long total_sent = 0;
     
     // Ignorer les 2 premières lignes (en-têtes)
-    fgets(line, sizeof(line), fp);
-    fgets(line, sizeof(line), fp);
+    int ret = fgets(line, sizeof(line), fp);
+    if (ret == NULL) {
+        fclose(fp);
+        *bytes_recv = 0;
+        *bytes_sent = 0;
+        return -1;
+    }
+    ret = fgets(line, sizeof(line), fp);
+    if (ret == NULL) {
+        fclose(fp);
+        *bytes_recv = 0;
+        *bytes_sent = 0;
+        return -1;
+    }
     
     // Parser chaque interface réseau
     while (fgets(line, sizeof(line), fp)) {
@@ -216,7 +228,12 @@ int *get_all_pids(void *arg) {
   }
 
   /* skip header line if any */
-  fgets(buffer, sizeof(buffer), fp); /* skip header */
+  int ret = fgets(buffer, sizeof(buffer), fp); /* skip header */
+  if (ret == NULL) {
+    perror("Erreur fgets");
+    pclose(fp);
+    exit(1);
+  }
 
   int *pid_list = malloc(1000 * sizeof(int));
   if (pid_list == NULL) {
