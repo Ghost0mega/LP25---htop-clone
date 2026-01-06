@@ -171,7 +171,7 @@ int get_process_network_stats(int pid, unsigned long long *bytes_sent, unsigned 
     unsigned long long total_sent = 0;
     
     // Ignorer les 2 premières lignes (en-têtes)
-    int ret = fgets(line, sizeof(line), fp);
+    char *ret = fgets(line, sizeof(line), fp);
     if (ret == NULL) {
         fclose(fp);
         *bytes_recv = 0;
@@ -228,7 +228,7 @@ int *get_all_pids(void *arg) {
   }
 
   /* skip header line if any */
-  int ret = fgets(buffer, sizeof(buffer), fp); /* skip header */
+  char *ret = fgets(buffer, sizeof(buffer), fp); /* skip header */
   if (ret == NULL) {
     perror("Erreur fgets");
     pclose(fp);
