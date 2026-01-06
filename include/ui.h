@@ -1,8 +1,8 @@
 #ifndef UI_H
 #define UI_H
 
-#include <ncurses.h>
 #include "process.h"
+#include <ncurses.h>
 #include <pthread.h>
 
 // Main ui loop

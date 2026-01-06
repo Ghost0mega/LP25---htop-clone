@@ -15,25 +15,24 @@ typedef struct parameters_table parameters_table;
 ==========*/
 
 typedef enum {
-    CONNECTION_TYPE_SSH,
-    CONNECTION_TYPE_TELNET,
-    CONNECTION_TYPE_UNKNOWN
+  CONNECTION_TYPE_SSH,
+  CONNECTION_TYPE_TELNET,
+  CONNECTION_TYPE_UNKNOWN
 } connection_type_t;
 
 typedef struct remote_config {
-    char name[64];
-    char address[128];
-    int port;
-    char username[64];
-    char password[64];
-    connection_type_t connection_type;
+  char name[64];
+  char address[128];
+  int port;
+  char username[64];
+  char password[64];
+  connection_type_t connection_type;
 } remote_config;
 
 /* Global array to store remote configurations */
 #define MAX_REMOTE_CONFIGS 16
 extern remote_config *g_remote_configs;
 extern int g_remote_configs_count;
-
 
 /*=========
 * METHODS: *
@@ -72,10 +71,12 @@ int network_init(parameters_table *parameters, int params_count);
 /**
  * Establish SSH connection and retrieve process list from a remote machine.
  * @param config Pointer to remote_config structure.
- * @param out_processes Pointer to array of process_info (must be freed by caller).
+ * @param out_processes Pointer to array of process_info (must be freed by
+ * caller).
  * @return Number of processes on success, -1 on error.
  */
-int network_get_processes_ssh(remote_config *config, process_info **out_processes);
+int network_get_processes_ssh(remote_config *config,
+                              process_info **out_processes);
 
 /**
  * Poll remote processes from all configured remote machines.
@@ -108,6 +109,6 @@ connection_type_t parse_connection_type(const char *type_str);
  * @param type Connection type enum.
  * @return String representation of connection type.
  */
-const char* connection_type_to_string(connection_type_t type);
+const char *connection_type_to_string(connection_type_t type);
 
 #endif /* NETWORK_H */
