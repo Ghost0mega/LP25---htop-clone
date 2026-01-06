@@ -1,14 +1,12 @@
 #ifndef MANAGER_H
 #define MANAGER_H
 
-#include <pthread.h>
 #include "process.h"
+#include <pthread.h>
 
-/*=========
-*  FORWARD DECLARATIONS:  *
-==========*/
+/*=========  FORWARD DECLARATIONS:  ==========*/
+
 typedef struct parameters_table parameters_table;
-
 
 /**
  * Start the process retrieval thread (local processes only).
@@ -16,7 +14,8 @@ typedef struct parameters_table parameters_table;
  * @param mutex Pointer to the mutex protecting the process list.
  * @return 0 on success, non-zero on failure.
  */
-int manager_start_process_thread(process_info **process_list_ptr, pthread_mutex_t *mutex);
+int manager_start_process_thread(process_info **process_list_ptr,
+                                 pthread_mutex_t *mutex);
 
 /**
  * Start the process retrieval thread (local + remote processes).
@@ -24,7 +23,8 @@ int manager_start_process_thread(process_info **process_list_ptr, pthread_mutex_
  * @param mutex Pointer to the mutex protecting the process list.
  * @return 0 on success, non-zero on failure.
  */
-int manager_start_process_thread_with_remote(process_info **process_list_ptr, pthread_mutex_t *mutex);
+int manager_start_process_thread_with_remote(process_info **process_list_ptr,
+                                             pthread_mutex_t *mutex);
 
 /**
  * Stop the process retrieval thread.
@@ -41,7 +41,8 @@ int ui_and_process_loop();
  * @param include_local Include local processes.
  * @param include_remote_only Include only remote processes (no local).
  */
-int ui_and_process_loop_with_params(bool include_local, bool include_remote_only);
+int ui_and_process_loop_with_params(bool include_local,
+                                    bool include_remote_only);
 
 /**
  * Execute the dry run mode (tests access to local and/or remote processes).

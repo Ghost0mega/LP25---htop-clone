@@ -147,59 +147,75 @@ int get_process_info(int pid, process_info *info) {
   }
   info->cpu_usage = info->cpu_utime + info->cpu_stime;
 
-  info->uptime = get_system_uptime() - (info->starttime / get_clock_ticks_per_second());
-  info->remote_config_index = -1;  // -1 indique un processus local
+  info->uptime =
+      get_system_uptime() - (info->starttime / get_clock_ticks_per_second());
+  info->remote_config_index = -1; // -1 indique un processus local
 
   return 0;
 }
 
-int get_process_network_stats(int pid, unsigned long long *bytes_sent, unsigned long long *bytes_recv) {
-    if (!bytes_sent || !bytes_recv) return -1;
-    
-    char path[128];
-    snprintf(path, sizeof(path), "/proc/%d/net/dev", pid);
-    
-    FILE *fp = fopen(path, "r");
-    if (!fp) {
-        *bytes_sent = 0;
-        *bytes_recv = 0;
-        return -1;
-    }
-    
-    char line[512];
-    unsigned long long total_recv = 0;
-    unsigned long long total_sent = 0;
-    
-    // Ignorer les 2 premières lignes (en-têtes)
-    fgets(line, sizeof(line), fp);
-    fgets(line, sizeof(line), fp);
-    
-    // Parser chaque interface réseau
-    while (fgets(line, sizeof(line), fp)) {
-        char interface[32];
-        unsigned long long recv_bytes, recv_packets, recv_errs, recv_drop;
-        unsigned long long send_bytes, send_packets, send_errs, send_drop;
-        
-        int matched = sscanf(line, "%31[^:]:%llu %llu %llu %llu %*u %*u %*u %*u %llu %llu %llu %llu",
-                            interface, 
-                            &recv_bytes, &recv_packets, &recv_errs, &recv_drop,
-                            &send_bytes, &send_packets, &send_errs, &send_drop);
-        
-        if (matched >= 9) {
-            char *iface_name = interface;
-            while (*iface_name == ' ' || *iface_name == '\t') iface_name++;
-            
-            if (strcmp(iface_name, "lo") != 0) {
-                total_recv += recv_bytes;
-                total_sent += send_bytes;
-            }
-        }
-    }
-    
+int get_process_network_stats(int pid, unsigned long long *bytes_sent,
+                              unsigned long long *bytes_recv) {
+  if (!bytes_sent || !bytes_recv)
+    return -1;
+
+  char path[128];
+  snprintf(path, sizeof(path), "/proc/%d/net/dev", pid);
+
+  FILE *fp = fopen(path, "r");
+  if (!fp) {
+    *bytes_sent = 0;
+    *bytes_recv = 0;
+    return -1;
+  }
+
+  char line[512];
+  unsigned long long total_recv = 0;
+  unsigned long long total_sent = 0;
+
+  // Ignorer les 2 premières lignes (en-têtes)
+  char *ret = fgets(line, sizeof(line), fp);
+  if (ret == NULL) {
     fclose(fp);
-    *bytes_recv = total_recv;
-    *bytes_sent = total_sent;
-    return 0;
+    *bytes_recv = 0;
+    *bytes_sent = 0;
+    return -1;
+  }
+  ret = fgets(line, sizeof(line), fp);
+  if (ret == NULL) {
+    fclose(fp);
+    *bytes_recv = 0;
+    *bytes_sent = 0;
+    return -1;
+  }
+
+  // Parser chaque interface réseau
+  while (fgets(line, sizeof(line), fp)) {
+    char interface[32];
+    unsigned long long recv_bytes, recv_packets, recv_errs, recv_drop;
+    unsigned long long send_bytes, send_packets, send_errs, send_drop;
+
+    int matched = sscanf(
+        line, "%31[^:]:%llu %llu %llu %llu %*u %*u %*u %*u %llu %llu %llu %llu",
+        interface, &recv_bytes, &recv_packets, &recv_errs, &recv_drop,
+        &send_bytes, &send_packets, &send_errs, &send_drop);
+
+    if (matched >= 9) {
+      char *iface_name = interface;
+      while (*iface_name == ' ' || *iface_name == '\t')
+        iface_name++;
+
+      if (strcmp(iface_name, "lo") != 0) {
+        total_recv += recv_bytes;
+        total_sent += send_bytes;
+      }
+    }
+  }
+
+  fclose(fp);
+  *bytes_recv = total_recv;
+  *bytes_sent = total_sent;
+  return 0;
 }
 
 int *get_all_pids(void *arg) {
@@ -216,7 +232,12 @@ int *get_all_pids(void *arg) {
   }
 
   /* skip header line if any */
-  fgets(buffer, sizeof(buffer), fp); /* skip header */
+  char *ret = fgets(buffer, sizeof(buffer), fp); /* skip header */
+  if (ret == NULL) {
+    perror("Erreur fgets");
+    pclose(fp);
+    exit(1);
+  }
 
   int *pid_list = malloc(1000 * sizeof(int));
   if (pid_list == NULL) {
@@ -268,8 +289,8 @@ unsigned long long get_total_system_cpu_time(void) {
   fclose(fp);
 
   unsigned long long user, nice, system, idle, iowait, irq, softirq, steal;
-  if (sscanf(buf, "cpu  %llu %llu %llu %llu %llu %llu %llu %llu", &user,
-             &nice, &system, &idle, &iowait, &irq, &softirq, &steal) < 8) {
+  if (sscanf(buf, "cpu  %llu %llu %llu %llu %llu %llu %llu %llu", &user, &nice,
+             &system, &idle, &iowait, &irq, &softirq, &steal) < 8) {
     return 0;
   }
   return user + nice + system + idle + iowait + irq + softirq + steal;
@@ -313,64 +334,75 @@ void *get_all_processes(void *arg) {
 
     for (size_t i = 0; i < count; i++) {
       if (pid_list[i] != 0) {
-          get_process_info(pid_list[i], &process_list[i]);
-          
-          // Récupérer les statistiques réseau
-          unsigned long long net_sent = 0, net_recv = 0;
-          get_process_network_stats(pid_list[i], &net_sent, &net_recv);
-          process_list[i].net_bytes_sent = net_sent;
-          process_list[i].net_bytes_recv = net_recv;
-          
-          // Calculate CPU usage
-          if (prev_list && prev_system_time > 0) {
-              size_t j = 0;
-              while (prev_list[j].pid != 0) {
-                  if (prev_list[j].pid == process_list[i].pid) {
-                      unsigned long long proc_time = process_list[i].cpu_utime + process_list[i].cpu_stime;
-                      unsigned long long prev_proc_time = prev_list[j].cpu_utime + prev_list[j].cpu_stime;
-                      unsigned long long system_delta = current_system_time - prev_system_time;
-                      
-                      if (system_delta > 0) {
-                          process_list[i].cpu_usage = (float)(proc_time - prev_proc_time) / system_delta * 100.0 * get_number_of_cpus();
-                      }
-                      
-                      // Calculer les débits réseau (octets/sec)
-                      if (process_list[i].net_bytes_sent >= prev_list[j].net_bytes_sent) {
-                          process_list[i].net_send_rate = (float)(process_list[i].net_bytes_sent - prev_list[j].net_bytes_sent);
-                      } else {
-                          process_list[i].net_send_rate = 0.0f;
-                      }
-                      
-                      if (process_list[i].net_bytes_recv >= prev_list[j].net_bytes_recv) {
-                          process_list[i].net_recv_rate = (float)(process_list[i].net_bytes_recv - prev_list[j].net_bytes_recv);
-                      } else {
-                          process_list[i].net_recv_rate = 0.0f;
-                      }
-                      
-                      break;
-                  }
-                  j++;
+        get_process_info(pid_list[i], &process_list[i]);
+
+        // Récupérer les statistiques réseau
+        unsigned long long net_sent = 0, net_recv = 0;
+        get_process_network_stats(pid_list[i], &net_sent, &net_recv);
+        process_list[i].net_bytes_sent = net_sent;
+        process_list[i].net_bytes_recv = net_recv;
+
+        // Calculate CPU usage
+        if (prev_list && prev_system_time > 0) {
+          size_t j = 0;
+          while (prev_list[j].pid != 0) {
+            if (prev_list[j].pid == process_list[i].pid) {
+              unsigned long long proc_time =
+                  process_list[i].cpu_utime + process_list[i].cpu_stime;
+              unsigned long long prev_proc_time =
+                  prev_list[j].cpu_utime + prev_list[j].cpu_stime;
+              unsigned long long system_delta =
+                  current_system_time - prev_system_time;
+
+              if (system_delta > 0) {
+                process_list[i].cpu_usage =
+                    (float)(proc_time - prev_proc_time) / system_delta * 100.0 *
+                    get_number_of_cpus();
               }
+
+              // Calculer les débits réseau (octets/sec)
+              if (process_list[i].net_bytes_sent >=
+                  prev_list[j].net_bytes_sent) {
+                process_list[i].net_send_rate =
+                    (float)(process_list[i].net_bytes_sent -
+                            prev_list[j].net_bytes_sent);
+              } else {
+                process_list[i].net_send_rate = 0.0f;
+              }
+
+              if (process_list[i].net_bytes_recv >=
+                  prev_list[j].net_bytes_recv) {
+                process_list[i].net_recv_rate =
+                    (float)(process_list[i].net_bytes_recv -
+                            prev_list[j].net_bytes_recv);
+              } else {
+                process_list[i].net_recv_rate = 0.0f;
+              }
+
+              break;
+            }
+            j++;
           }
-          
-          // Si pas trouvé dans prev_list, initialiser à 0
-          if (!prev_list || prev_list[0].pid == 0) {
-              process_list[i].net_send_rate = 0.0f;
-              process_list[i].net_recv_rate = 0.0f;
-          }
+        }
+
+        // Si pas trouvé dans prev_list, initialiser à 0
+        if (!prev_list || prev_list[0].pid == 0) {
+          process_list[i].net_send_rate = 0.0f;
+          process_list[i].net_recv_rate = 0.0f;
+        }
       }
-  }
+    }
     /* terminateur */
     process_list[count].pid = 0;
 
     /* Ajouter les processus distants si demandé */
     if (include_remote) {
-        int total_count = network_poll_all_processes(&process_list, count);
-        if (total_count > (int)count) {
-            /* Mark end of list */
-            process_list[total_count].pid = 0;
-            count = total_count;
-        }
+      int total_count = network_poll_all_processes(&process_list, count);
+      if (total_count > (int)count) {
+        /* Mark end of list */
+        process_list[total_count].pid = 0;
+        count = total_count;
+      }
     }
 
     /* publier la nouvelle liste et libérer l'ancienne */
@@ -384,7 +416,9 @@ void *get_all_processes(void *arg) {
     if (mutex)
       pthread_mutex_unlock(mutex);
 
-    prev_list = process_list; // Keep reference for next iteration (NOTE: *process_list_ptr owns it, but we know it won't be freed until we do it next loop)
+    prev_list = process_list; // Keep reference for next iteration (NOTE:
+                              // *process_list_ptr owns it, but we know it won't
+                              // be freed until we do it next loop)
     prev_system_time = current_system_time;
 
     sleep(1);
