@@ -47,8 +47,8 @@ int search_process(process_info *plist, size_t count, const char *search_term) {
         // Recherche par nom (insensible à la casse)
         char name_lower[256];
         char search_lower[256];
-        strncpy(name_lower, plist[i].name, sizeof(name_lower)-1);
-        strncpy(search_lower, search_term, sizeof(search_lower)-1);
+        snprintf(name_lower, sizeof(name_lower), "%s", plist[i].name);
+        snprintf(search_lower, sizeof(search_lower), "%s", search_term);
         
         for (int j = 0; name_lower[j]; j++) {
             name_lower[j] = tolower(name_lower[j]);
@@ -289,12 +289,12 @@ void ui_loop(process_info **process_list_ptr, pthread_mutex_t *mutex) {
         /* Affichage différent selon l'onglet actif */
         switch (tab) {
           case 0: {
-            if (plist == NULL || plist[i].pid == 0 || plist[i].name == NULL) break;
+            if (plist == NULL || plist[i].pid == 0 || plist[i].name[0] == '\0') break;
             char state_char = (char)plist[i].state;
             char truncated_name[21];
             char ram_usage_str[16];
-            char uptime_str[16];
-            char net_info_str[32];
+            char uptime_str[32];
+            char net_info_str[64];
             
             snprintf(truncated_name, sizeof(truncated_name), "%-20.20s", plist[i].name);
             
@@ -391,21 +391,21 @@ void ui_loop(process_info **process_list_ptr, pthread_mutex_t *mutex) {
       /* F2 : Passer à l'onglet suivant */
       case KEY_F(2): 
         space_value = 5; 
-        snprintf(key, sizeof(key), ""); 
+        key[0] = '\0'; 
         if (tab < 4) tab++;
         break;
         
       /* F3 : Revenir à l'onglet précédent */
       case KEY_F(3): 
         space_value = 5; 
-        snprintf(key, sizeof(key), ""); 
+        key[0] = '\0'; 
         if (tab > 0) tab--;
         break;
         
       /* F4 : Rechercher un processus */
       case KEY_F(4): {
         space_value = 5;
-        snprintf(key, sizeof(key), "");
+        key[0] = '\0';
         
         char search_term[256];
         if (input_dialog("Rechercher un processus (nom ou PID):", search_term, sizeof(search_term)) == 0) {
@@ -429,7 +429,7 @@ void ui_loop(process_info **process_list_ptr, pthread_mutex_t *mutex) {
                 } else if (selection >= offset + max_lines) {
                     offset = selection - max_lines + 1;
                 }
-                char msg[256];
+                char msg[512];
                 snprintf(msg, sizeof(msg), "Processus trouve: %s (PID: %d)", 
                          plist_search[found_idx].name, plist_search[found_idx].pid);
                 info_dialog(msg, 0);
@@ -443,7 +443,7 @@ void ui_loop(process_info **process_list_ptr, pthread_mutex_t *mutex) {
       /* F5 : Mettre un processus en pause (SIGSTOP) */
       case KEY_F(5): {
           space_value = 5;
-          snprintf(key, sizeof(key), "");
+          key[0] = '\0';
           
           pthread_mutex_lock(mutex);
           process_info *plist_pause = *process_list_ptr;
@@ -451,10 +451,10 @@ void ui_loop(process_info **process_list_ptr, pthread_mutex_t *mutex) {
               int target_pid = plist_pause[selection].pid;
               int remote_idx = plist_pause[selection].remote_config_index;
               char target_name[256];
-              strncpy(target_name, plist_pause[selection].name, sizeof(target_name)-1);
+              snprintf(target_name, sizeof(target_name), "%s", plist_pause[selection].name);
               pthread_mutex_unlock(mutex);
               
-              char msg[256];
+              char msg[512];
               if (remote_idx >= 0) {
                   snprintf(msg, sizeof(msg), "Mettre en pause le processus distant %s (PID: %d) sur %s ?", 
                           target_name, target_pid, g_remote_configs[remote_idx].name);
@@ -489,7 +489,7 @@ void ui_loop(process_info **process_list_ptr, pthread_mutex_t *mutex) {
       /* F6 : Arrêter un processus (SIGTERM) */
       case KEY_F(6): {
           space_value = 5;
-          snprintf(key, sizeof(key), "");
+          key[0] = '\0';
           
           pthread_mutex_lock(mutex);
           process_info *plist_term = *process_list_ptr;
@@ -497,10 +497,10 @@ void ui_loop(process_info **process_list_ptr, pthread_mutex_t *mutex) {
               int target_pid = plist_term[selection].pid;
               int remote_idx = plist_term[selection].remote_config_index;
               char target_name[256];
-              strncpy(target_name, plist_term[selection].name, sizeof(target_name)-1);
+              snprintf(target_name, sizeof(target_name), "%s", plist_term[selection].name);
               pthread_mutex_unlock(mutex);
               
-              char msg[256];
+              char msg[512];
               if (remote_idx >= 0) {
                   snprintf(msg, sizeof(msg), "Arreter le processus distant %s (PID: %d) sur %s ?", 
                           target_name, target_pid, g_remote_configs[remote_idx].name);
@@ -535,7 +535,7 @@ void ui_loop(process_info **process_list_ptr, pthread_mutex_t *mutex) {
       /* F7 : Tuer un processus (SIGKILL) */
       case KEY_F(7): {
           space_value = 5;
-          snprintf(key, sizeof(key), "");
+          key[0] = '\0';
           
           pthread_mutex_lock(mutex);
           process_info *plist_kill = *process_list_ptr;
@@ -543,10 +543,10 @@ void ui_loop(process_info **process_list_ptr, pthread_mutex_t *mutex) {
               int target_pid = plist_kill[selection].pid;
               int remote_idx = plist_kill[selection].remote_config_index;
               char target_name[256];
-              strncpy(target_name, plist_kill[selection].name, sizeof(target_name)-1);
+              snprintf(target_name, sizeof(target_name), "%s", plist_kill[selection].name);
               pthread_mutex_unlock(mutex);
               
-              char msg[256];
+              char msg[512];
               if (remote_idx >= 0) {
                   snprintf(msg, sizeof(msg), "TUER (SIGKILL) le processus distant %s (PID: %d) sur %s ?", 
                           target_name, target_pid, g_remote_configs[remote_idx].name);
@@ -581,7 +581,7 @@ void ui_loop(process_info **process_list_ptr, pthread_mutex_t *mutex) {
       /* F8 : Redémarrer un processus (SIGCONT) */
       case KEY_F(8): {
           space_value = 5;
-          snprintf(key, sizeof(key), "");
+          key[0] = '\0';
           
           pthread_mutex_lock(mutex);
           process_info *plist_cont = *process_list_ptr;
@@ -589,10 +589,10 @@ void ui_loop(process_info **process_list_ptr, pthread_mutex_t *mutex) {
               int target_pid = plist_cont[selection].pid;
               int remote_idx = plist_cont[selection].remote_config_index;
               char target_name[256];
-              strncpy(target_name, plist_cont[selection].name, sizeof(target_name)-1);
+              snprintf(target_name, sizeof(target_name), "%s", plist_cont[selection].name);
               pthread_mutex_unlock(mutex);
               
-              char msg[256];
+              char msg[512];
               if (remote_idx >= 0) {
                   snprintf(msg, sizeof(msg), "Redemarrer le processus distant %s (PID: %d) sur %s ?", 
                           target_name, target_pid, g_remote_configs[remote_idx].name);

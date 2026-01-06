@@ -352,9 +352,21 @@ int network_get_processes_ssh(remote_config *config, process_info **out_processe
         return -1;
     }
 
-    /* Build SSH command to get process list */
-    char ssh_cmd[STR_MAX * 2];
-    snprintf(ssh_cmd, sizeof(ssh_cmd),
+    /* Build SSH command to get process list (avoid truncation by sizing dynamically) */
+    int ssh_cmd_len = snprintf(NULL, 0,
+             "sshpass -p '%s' ssh -o StrictHostKeyChecking=no -p %d %s@%s "
+             "'ps aux' > %s 2>&1",
+             escaped_password, config->port, config->username, config->address, tmpfile);
+    if (ssh_cmd_len < 0) {
+        fprintf(stderr, "ERROR: Failed to build SSH command\n");
+        return -1;
+    }
+    char *ssh_cmd = calloc((size_t)ssh_cmd_len + 1, sizeof(char));
+    if (!ssh_cmd) {
+        fprintf(stderr, "ERROR: Cannot allocate SSH command buffer\n");
+        return -1;
+    }
+    snprintf(ssh_cmd, (size_t)ssh_cmd_len + 1,
              "sshpass -p '%s' ssh -o StrictHostKeyChecking=no -p %d %s@%s "
              "'ps aux' > %s 2>&1",
              escaped_password, config->port, config->username, config->address, tmpfile);
@@ -363,6 +375,7 @@ int network_get_processes_ssh(remote_config *config, process_info **out_processe
     if (ret != 0) {
         fprintf(stderr, "ERROR: SSH connection failed to %s\n", config->address);
         unlink(tmpfile);
+        free(ssh_cmd);
         return -1;
     }
 
@@ -430,8 +443,7 @@ int network_get_processes_ssh(remote_config *config, process_info **out_processe
                 trimmed++;
             }
             
-            strncpy((*out_processes)[idx].name, trimmed, sizeof((*out_processes)[idx].name)-1);
-            (*out_processes)[idx].name[sizeof((*out_processes)[idx].name)-1] = '\0';
+            snprintf((*out_processes)[idx].name, sizeof((*out_processes)[idx].name), "%s", trimmed);
             (*out_processes)[idx].cpu_usage = cpu;
             (*out_processes)[idx].mem_usage = (unsigned long)(mem * 1024 * 1024);
             
@@ -459,6 +471,7 @@ int network_get_processes_ssh(remote_config *config, process_info **out_processe
 
     fclose(fp);
     unlink(tmpfile);
+    free(ssh_cmd);
     return idx;
 }
 
@@ -521,9 +534,22 @@ int network_kill_process(int config_index, int pid, int signal) {
         return -1;
     }
     
-    /* Build SSH command to send signal */
-    char ssh_cmd[STR_MAX * 2];
-    snprintf(ssh_cmd, sizeof(ssh_cmd),
+    /* Build SSH command to send signal (avoid truncation by sizing dynamically) */
+    int ssh_cmd_len = snprintf(NULL, 0,
+             "sshpass -p '%s' ssh -o StrictHostKeyChecking=no -p %d %s@%s "
+             "'kill -%d %d' 2>&1",
+             escaped_password, config->port, config->username, config->address,
+             signal, pid);
+    if (ssh_cmd_len < 0) {
+        fprintf(stderr, "ERROR: Failed to build SSH command\n");
+        return -1;
+    }
+    char *ssh_cmd = calloc((size_t)ssh_cmd_len + 1, sizeof(char));
+    if (!ssh_cmd) {
+        fprintf(stderr, "ERROR: Cannot allocate SSH command buffer\n");
+        return -1;
+    }
+    snprintf(ssh_cmd, (size_t)ssh_cmd_len + 1,
              "sshpass -p '%s' ssh -o StrictHostKeyChecking=no -p %d %s@%s "
              "'kill -%d %d' 2>&1",
              escaped_password, config->port, config->username, config->address,
@@ -533,8 +559,10 @@ int network_kill_process(int config_index, int pid, int signal) {
     if (ret != 0) {
         fprintf(stderr, "ERROR: Failed to send signal to remote process %d on %s\n", 
                 pid, config->name);
+        free(ssh_cmd);
         return -1;
     }
     
+    free(ssh_cmd);
     return 0;
 }

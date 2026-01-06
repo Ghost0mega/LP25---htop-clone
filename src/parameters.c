@@ -126,7 +126,6 @@ parameters_table *manage_arguments(int argc, char *argv[], int *out_count) {
 bool params_validate(parameters_table *params, int params_count) {
     bool has_config_file = false;
     bool has_login = false;
-    bool has_remote_server = false;
     bool has_all_flag = false;
 
     for (int i = 0; i < params_count; i++) {
@@ -210,7 +209,6 @@ bool params_validate(parameters_table *params, int params_count) {
                         fprintf(stderr, "ERROR: Cannot use both -l/--login and -s/--remote-server.\n");
                         return false;
                     }
-                    has_remote_server = true;
                 }
                 break;
 
