@@ -86,8 +86,6 @@ int network_get_processes_ssh(remote_config *config,
  */
 int network_poll_all_processes(process_info **all_processes, int local_count);
 
-void network_poll(void);
-
 /**
  * Send a signal to a remote process via SSH.
  * @param config_index Index in g_remote_configs array.
