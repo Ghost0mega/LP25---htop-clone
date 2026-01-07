@@ -1,6 +1,6 @@
 # LP25---htop-clone
 
-par pité oubliez pas de faire des branches quand vous bossez et de faire gaffe a vos PRs (envrai osef si c'est juste pour update le readme mais vous m'avez compris)
+oubliez pas de faire des branches quand vous bossez et de faire gaffe a vos PRs (envrai osef si c'est juste pour update le readme mais vous m'avez compris)
 aussi ca serait cool de bien commenter comme ca le rendu sera plus propre (les llms sont tres bons pour faire des commentaires sur le tas)
 
 ## Architecture (forcée par le sujet)
@@ -15,6 +15,6 @@ aussi ca serait cool de bien commenter comme ca le rendu sera plus propre (les l
 ### A faire
 
 - rendre l'ui plus beau
-- les configs et les args en ligne de commande > en rapport avec la partie réseaux
-- le distant (ssh ou telnet)
 - fix les bugs
+- telnet
+- sorting
