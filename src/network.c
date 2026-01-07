@@ -574,8 +574,6 @@ int network_poll_all_processes(process_info **all_processes, int local_count) {
   return total_count;
 }
 
-void network_poll(void) { /* stub: poll network stats */ }
-
 int network_kill_process(int config_index, int pid, int signal) {
   if (config_index < 0 || config_index >= g_remote_configs_count) {
     return -1;
